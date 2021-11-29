@@ -260,7 +260,7 @@ RSpec.describe 'AST to SemanticNode' do
         )
 
         expect(code_to_semantic_node("
-            x = 3
+            x = foo(3)
             case x
             when String
                 a
@@ -271,10 +271,17 @@ RSpec.describe 'AST to SemanticNode' do
             end
         ")).to be_a(Body) & have_attributes(
             nodes: [
+                # x = foo(3)
                 be_a(LocalVariableAssignment) & have_attributes(
                     name: :x,
-                    value: be_a(IntegerLiteral) & have_attributes(value: 3),
+                    value: be_a(Send) & have_attributes(method: :foo),
                 ),
+
+                # ___fabricated = x
+                be_a(LocalVariableAssignment) & have_attributes(
+                    value: be_a(LocalVariable) & have_attributes(name: :x),
+                ),
+
                 # when String
                 be_a(Conditional) & have_attributes(
                     condition: be_a(Send) & have_attributes(

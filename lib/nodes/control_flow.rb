@@ -8,7 +8,16 @@ class Body < SemanticNode
         else
             Body.new(
                 ast_node: ast_node,
-                nodes: ast_node.to_a.map { from_ast(_1) }
+
+                # Use a flat map so that we can flatten inner Body nodes into this one
+                nodes: ast_node.to_a.flat_map do |ast_node|
+                    sem_node = from_ast(ast_node)
+                    if sem_node.is_a?(Body)
+                        sem_node.nodes
+                    else
+                        [sem_node]
+                    end
+                end
             )
         end
     end
@@ -77,6 +86,12 @@ class Conditional < SemanticNode
         # It is syntactically enforced that a `case` will have at least one `when`, so this is safe
         last_conditional.false_branch = else_case
 
-        root_conditional
+        Body.new(
+            ast_node: ast_node,
+            nodes: [
+                fabricated_subject_var_asgn,
+                root_conditional,
+            ]
+        )
     end
 end
