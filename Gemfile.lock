@@ -1,0 +1,14 @@
+GEM
+  specs:
+    ast (2.4.2)
+    parser (3.0.3.0)
+      ast (~> 2.4.1)
+
+PLATFORMS
+  arm64-darwin-21
+
+DEPENDENCIES
+  parser
+
+BUNDLED WITH
+   2.2.22
