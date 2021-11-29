@@ -307,23 +307,4 @@ def code_to_semantic_node(code)
     SemanticNode.from_ast(ast_node)
 end
 
-# -------
-
-def no_fail!(code)
-    code_to_semantic_node(code)
-rescue => e
-    abort "Unable to parse test case (#{e}): #{code}"
-end
-
-# no_fail! '2 + 3'
-# no_fail! '"Hello"'
-# no_fail! '"My name is: #{name}"'
-# no_fail! 'name.upcase'
-# no_fail! 'add(3, 4, 6, multiplier: 10)'
-# no_fail! 'array.map { |x| x * 2 }'
-# no_fail! 'array.each_cons(2) { |a, b| a + b }'
-# no_fail! 'array.map { _1 * 2 }'
-
-# -------
-
 pp code_to_semantic_node(ARGV[0]) if __FILE__ == $0
