@@ -331,4 +331,16 @@ RSpec.describe 'AST to SemanticNode' do
             ]
         )
     end
+
+    it 'translates boolean operators' do
+        expect(code_to_semantic_node('a && b')).to be_a(BooleanAnd) & have_attributes(
+            left: be_a(Send) & have_attributes(target: nil, method: :a),
+            right: be_a(Send) & have_attributes(target: nil, method: :b),
+        )
+
+        expect(code_to_semantic_node('a || b')).to be_a(BooleanOr) & have_attributes(
+            left: be_a(Send) & have_attributes(target: nil, method: :a),
+            right: be_a(Send) & have_attributes(target: nil, method: :b),
+        )
+    end
 end

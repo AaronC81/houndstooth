@@ -44,6 +44,7 @@ class SemanticNode
 end
 
 require_relative 'nodes/control_flow'
+require_relative 'nodes/operators'
 require_relative 'nodes/identifiers'
 require_relative 'nodes/keywords'
 require_relative 'nodes/literals'
