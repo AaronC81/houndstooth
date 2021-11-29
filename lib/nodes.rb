@@ -290,6 +290,27 @@ class LocalVariableAssignment < SemanticNode
     end
 end
 
+class Conditional < SemanticNode
+    # @return [SemanticNode]
+    attr_accessor :condition
+
+    # @return [SemanticNode]
+    attr_accessor :true_branch
+
+    # @return [SemanticNode, nil]
+    attr_accessor :false_branch
+
+    register_ast_converter :if do |ast_node|
+        condition, true_branch, false_branch = ast_node.to_a.map { from_ast(_1) if _1 }
+
+        Conditional.new(
+            condition: condition,
+            true_branch: true_branch,
+            false_branch: false_branch,
+        )
+    end
+end
+
 # -------
 
 require 'parser/ruby30'

@@ -170,4 +170,48 @@ RSpec.describe 'AST to SemanticNode' do
         expect(code_to_semantic_node('self')).to be_a(SelfKeyword)
         expect(code_to_semantic_node('nil')).to be_a(NilKeyword)
     end
+
+    it 'translates conditionals' do
+        expect(code_to_semantic_node('if foo; bar; end')).to be_a(Conditional) & have_attributes(
+            condition: be_a(Send) & have_attributes(
+                target: nil,
+                method: :foo,
+            ),
+            true_branch: be_a(Send) & have_attributes(
+                target: nil,
+                method: :bar,
+            ),
+            false_branch: nil,
+        )
+
+        expect(code_to_semantic_node('if foo; bar; else; baz; end')).to be_a(Conditional) & have_attributes(
+            condition: be_a(Send) & have_attributes(
+                target: nil,
+                method: :foo,
+            ),
+            true_branch: be_a(Send) & have_attributes(
+                target: nil,
+                method: :bar,
+            ),
+            false_branch: be_a(Send) & have_attributes(
+                target: nil,
+                method: :baz,
+            ),
+        )
+
+        expect(code_to_semantic_node('foo ? bar : baz')).to be_a(Conditional) & have_attributes(
+            condition: be_a(Send) & have_attributes(
+                target: nil,
+                method: :foo,
+            ),
+            true_branch: be_a(Send) & have_attributes(
+                target: nil,
+                method: :bar,
+            ),
+            false_branch: be_a(Send) & have_attributes(
+                target: nil,
+                method: :baz,
+            ),
+        )
+    end
 end
