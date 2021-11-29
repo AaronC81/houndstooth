@@ -2,6 +2,10 @@ RSpec.describe 'AST to SemanticNode' do
     it 'translates literals' do
         expect(code_to_semantic_node('1')).to be_a(IntegerLiteral) & have_attributes(value: 1)
 
+        expect(code_to_semantic_node('3.0')).to be_a(FloatLiteral) & have_attributes(value: 3.0)
+        expect(code_to_semantic_node('3.14')).to be_a(FloatLiteral) & have_attributes(value: 3.14)
+        expect(code_to_semantic_node('3e2')).to be_a(FloatLiteral) & have_attributes(value: 300.0)
+
         expect(code_to_semantic_node('"hello"')).to be_a(StringLiteral) & have_attributes(
             components: ['hello']
         )

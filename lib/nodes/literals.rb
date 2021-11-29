@@ -7,6 +7,15 @@ class IntegerLiteral < SemanticNode
     end
 end
 
+class FloatLiteral < SemanticNode
+    # @return [Float]
+    attr_accessor :value
+
+    register_ast_converter :float do |ast_node|
+        FloatLiteral.new(ast_node: ast_node, value: ast_node.to_a.first)
+    end
+end
+
 class StringLiteral < SemanticNode
     # @return [<String, SemanticNode>]
     attr_accessor :components
