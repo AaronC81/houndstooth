@@ -1,4 +1,5 @@
 require_relative '../lib/nodes'
+require_relative '../lib/cli'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
