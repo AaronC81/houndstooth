@@ -213,5 +213,50 @@ RSpec.describe 'AST to SemanticNode' do
                 method: :baz,
             ),
         )
+
+        expect(code_to_semantic_node("
+            x = 3
+            case x
+            when String
+                a
+            when 3
+                b
+            else 
+                c
+            end
+        ")).to be_a(Body) & have_attributes(
+            nodes: [
+                be_a(LocalVariableAssignment) & have_attributes(
+                    name: :x,
+                    value: be_a(IntegerLiteral) & have_attributes(value: 3),
+                ),
+                # when String
+                be_a(Conditional) & have_attributes(
+                    condition: be_a(Send) & have_attributes(
+                        target: be_a(Constant) & have_attributes(name: :String),
+                        method: :===,
+                        positional_arguments: [
+                            be_a(LocalVariable) & have_attributes(fabricated: true),
+                        ],
+                    ),
+                    true_branch: be_a(Send) & have_attributes(method: :a),
+
+                    # when 3
+                    false_branch: be_a(Conditional) & have_attributes(
+                        condition: be_a(Send) & have_attributes(
+                            target: be_a(IntegerLiteral) & have_attributes(value: 3),
+                            method: :===,
+                            positional_arguments: [
+                                be_a(LocalVariable) & have_attributes(fabricated: true),
+                            ],
+                        ),
+                        true_branch: be_a(Send) & have_attributes(method: :b),
+
+                        # else
+                        false_branch: be_a(Send) & have_attributes(method: :c),
+                    )
+                )
+            ]
+        )
     end
 end

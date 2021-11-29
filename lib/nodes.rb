@@ -266,8 +266,20 @@ class LocalVariable < SemanticNode
     # @return [Symbol]
     attr_accessor :name
 
+    # @return [Boolean]
+    attr_accessor :fabricated
+    alias fabricated? fabricated
+
     register_ast_converter :lvar do |ast_node|
-        LocalVariable.new(ast_node: ast_node, name: ast_node.to_a.first)
+        LocalVariable.new(ast_node: ast_node, name: ast_node.to_a.first, fabricated: false)
+    end
+
+    def self.fabricate
+        @@fabricate_counter ||= 0
+        @@fabricate_counter += 1
+
+        name = "___fabricated_#{@@fabricate_counter}"
+        LocalVariable.new(ast_node: nil, name: name, fabricated: true)
     end
 end
 
@@ -308,6 +320,52 @@ class Conditional < SemanticNode
             true_branch: true_branch,
             false_branch: false_branch,
         )
+    end
+
+    register_ast_converter :case do |ast_node|
+        subject, *whens, else_case = *ast_node
+
+        subject = from_ast(subject)
+        whens = whens.map { |w| w.to_a.map { from_ast(_1) } } # [[value, body], ...]
+        else_case = from_ast(else_case) if else_case
+
+        # Convert into assignment and conditional chain
+        fabricated_subject_var = LocalVariable.fabricate
+        fabricated_subject_var_asgn = LocalVariableAssignment.new(
+            ast_node: nil,
+            name: fabricated_subject_var.name,
+            value: subject,
+        )
+
+        # Add each `when` as the false branch of the previous one
+        root_conditional = nil
+        last_conditional = nil
+
+        whens.each do |(value, body)|
+            this_conditional = Conditional.new(
+                # `when x` is equivalent to `x === subject`
+                condition: Send.new(
+                    target: value,
+                    method: :===,
+                    positional_arguments: [fabricated_subject_var],
+                ),
+                true_branch: body,
+                false_branch: nil,
+            )
+
+            if last_conditional
+                last_conditional.false_branch = this_conditional
+                last_conditional = this_conditional
+            else
+                root_conditional = this_conditional
+                last_conditional = this_conditional
+            end
+        end
+
+        # It is syntactically enforced that a `case` will have at least one `when`, so this is safe
+        last_conditional.false_branch = else_case
+
+        root_conditional
     end
 end
 
