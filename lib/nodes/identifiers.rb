@@ -23,6 +23,30 @@ class ConstantBase < SemanticNode
     end 
 end
 
+class ConstantAssignment < SemanticNode
+    # @return [Constant, nil]
+    attr_accessor :target
+
+    # @return [Symbol]
+    attr_accessor :name
+
+    # @return [SemanticNode]
+    attr_accessor :value
+
+    register_ast_converter :casgn do |ast_node|
+        target, name, value = *ast_node
+        target = from_ast(target) if target
+        value = from_ast(value)
+        
+        ConstantAssignment.new(
+            ast_node: ast_node,
+            target: target,
+            name: name,
+            value: value,
+        )
+    end
+end
+
 class LocalVariable < SemanticNode
     # @return [Symbol]
     attr_accessor :name

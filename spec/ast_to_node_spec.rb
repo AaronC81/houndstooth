@@ -195,6 +195,18 @@ RSpec.describe 'AST to SemanticNode' do
             ),
             name: :Z,
         )
+
+        expect(code_to_semantic_node('X = 3')).to be_a(ConstantAssignment) & have_attributes(
+            target: nil,
+            name: :X,
+            value: be_a(IntegerLiteral) & have_attributes(value: 3),
+        )
+
+        expect(code_to_semantic_node('X::Y = 3')).to be_a(ConstantAssignment) & have_attributes(
+            target: be_a(Constant) & have_attributes(name: :X),
+            name: :Y,
+            value: be_a(IntegerLiteral) & have_attributes(value: 3),
+        )
     end
 
     it 'translates keywords' do
