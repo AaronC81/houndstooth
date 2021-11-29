@@ -105,10 +105,12 @@ RSpec.describe 'AST to SemanticNode' do
             keyword_arguments: [],
 
             block: be_a(Block) & have_attributes(
-                positional_parameters: [:a, :b],
-                optional_parameters: [],
-                keyword_parameters: [],
-                optional_keyword_parameters: [],
+                parameters: be_a(Parameters) & have_attributes(
+                    positional_parameters: [:a, :b],
+                    optional_parameters: [],
+                    keyword_parameters: [],
+                    optional_keyword_parameters: [],
+                ),
 
                 body: be_a(Send) & have_attributes(
                     target: be_a(LocalVariable) & have_attributes(name: :a),
@@ -127,12 +129,14 @@ RSpec.describe 'AST to SemanticNode' do
             keyword_arguments: [],
 
             block: be_a(Block) & have_attributes(
-                positional_parameters: [:a],
-                optional_parameters: [[:b, be_a(IntegerLiteral) & have_attributes(value: 3)]],
-                keyword_parameters: [:c],
-                optional_keyword_parameters: [[:d, be_a(IntegerLiteral) & have_attributes(value: 4)]],
-                rest_parameter: :e,
-                rest_keyword_parameter: :f,
+                parameters: be_a(Parameters) & have_attributes(
+                    positional_parameters: [:a],
+                    optional_parameters: [[:b, be_a(IntegerLiteral) & have_attributes(value: 3)]],
+                    keyword_parameters: [:c],
+                    optional_keyword_parameters: [[:d, be_a(IntegerLiteral) & have_attributes(value: 4)]],
+                    rest_parameter: :e,
+                    rest_keyword_parameter: :f,
+                ),
 
                 body: be_a(Send) & have_attributes(
                     target: be_a(Send) & have_attributes(

@@ -50,29 +50,24 @@ class Send < SemanticNode
         # TODO: support numbered arguments
 
         send.block = Block.new(
-            positional_parameters: [],
-            optional_parameters: [],
-            keyword_parameters: [],
-            optional_keyword_parameters: [],
-            rest_parameter: nil,
-            rest_keyword_parameter: nil,
+            parameters: Parameters.new,
         )
         args_ast_node.to_a.each do |arg|
             case arg.type
             when :arg
-                send.block.positional_parameters << arg.to_a.first
+                send.block.parameters.positional_parameters << arg.to_a.first
             when :kwarg
-                send.block.keyword_parameters << arg.to_a.first
+                send.block.parameters.keyword_parameters << arg.to_a.first
             when :optarg
                 name, value = *arg
-                send.block.optional_parameters << [name, from_ast(value)]
+                send.block.parameters.optional_parameters << [name, from_ast(value)]
             when :kwoptarg
                 name, value = *arg
-                send.block.optional_keyword_parameters << [name, from_ast(value)]
+                send.block.parameters.optional_keyword_parameters << [name, from_ast(value)]
             when :restarg
-                send.block.rest_parameter = arg.to_a.first
+                send.block.parameters.rest_parameter = arg.to_a.first
             when :kwrestarg
-                send.block.rest_keyword_parameter = arg.to_a.first 
+                send.block.parameters.rest_keyword_parameter = arg.to_a.first 
             else
                 raise "unsupported argument type: #{arg}"
             end
@@ -85,23 +80,8 @@ class Send < SemanticNode
 end
 
 class Block < SemanticNode
-    # @return [<Symbol>]
-    attr_accessor :positional_parameters
-    
-    # @return [<(Symbol, SemanticNode)>]
-    attr_accessor :optional_parameters
-    
-    # @return [<Symbol>]
-    attr_accessor :keyword_parameters
-    
-    # @return [<(Symbol, SemanticNode)>]
-    attr_accessor :optional_keyword_parameters
-
-    # @return [Symbol, nil]
-    attr_accessor :rest_parameter
-
-    # @return [Symbol, nil]
-    attr_accessor :rest_keyword_parameter
+    # @return [Parameters]
+    attr_accessor :parameters
 
     # @return [SemanticNode]
     attr_accessor :body
