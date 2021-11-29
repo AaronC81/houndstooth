@@ -163,4 +163,11 @@ RSpec.describe 'AST to SemanticNode' do
             name: :Z,
         )
     end
+
+    it 'translates keywords' do
+        expect(code_to_semantic_node('true')).to be_a(TrueKeyword)
+        expect(code_to_semantic_node('false')).to be_a(FalseKeyword)
+        expect(code_to_semantic_node('self')).to be_a(SelfKeyword)
+        expect(code_to_semantic_node('nil')).to be_a(NilKeyword)
+    end
 end
