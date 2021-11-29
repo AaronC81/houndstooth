@@ -163,6 +163,26 @@ RSpec.describe 'AST to SemanticNode' do
         )
     end
 
+    it 'translates instance, class, and global variables' do
+        expect(code_to_semantic_node('@x')).to be_a(InstanceVariable) & have_attributes(name: :@x)
+        expect(code_to_semantic_node('@x = 3')).to be_a(InstanceVariableAssignment) & have_attributes(
+            name: :@x,
+            value: be_a(IntegerLiteral) & have_attributes(value: 3),
+        )
+
+        expect(code_to_semantic_node('@@x')).to be_a(ClassVariable) & have_attributes(name: :@@x)
+        expect(code_to_semantic_node('@@x = 3')).to be_a(ClassVariableAssignment) & have_attributes(
+            name: :@@x,
+            value: be_a(IntegerLiteral) & have_attributes(value: 3),
+        )
+
+        expect(code_to_semantic_node('$x')).to be_a(GlobalVariable) & have_attributes(name: :$x)
+        expect(code_to_semantic_node('$x = 3')).to be_a(GlobalVariableAssignment) & have_attributes(
+            name: :$x,
+            value: be_a(IntegerLiteral) & have_attributes(value: 3),
+        )
+    end
+
     it 'translates constants' do
         expect(code_to_semantic_node('X')).to be_a(Constant) & have_attributes(name: :X)
 

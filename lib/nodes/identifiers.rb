@@ -98,3 +98,34 @@ class LocalVariableAssignment < SemanticNode
     extend VariableMixin
     variable_assignment_mixin :lvasgn
 end
+
+class InstanceVariable < SemanticNode
+    extend VariableMixin
+    variable_mixin :ivar
+end
+
+class InstanceVariableAssignment < SemanticNode
+    extend VariableMixin
+    variable_assignment_mixin :ivasgn
+end
+
+class ClassVariable < SemanticNode
+    extend VariableMixin
+    variable_mixin :cvar
+end
+
+class ClassVariableAssignment < SemanticNode
+    extend VariableMixin
+    variable_assignment_mixin :cvasgn
+end
+
+class GlobalVariable < SemanticNode
+    extend VariableMixin
+    variable_mixin :gvar
+end
+
+class GlobalVariableAssignment < SemanticNode
+    extend VariableMixin
+    variable_assignment_mixin :gvasgn
+end
+
