@@ -26,6 +26,35 @@ RSpec.describe 'AST to SemanticNode' do
         )
     end
 
+    it 'translates compound literals' do
+        # TODO: splats
+
+        expect(code_to_semantic_node('[]')).to be_a(ArrayLiteral) & have_attributes(nodes: [])
+
+        expect(code_to_semantic_node('[1, 2, 3]')).to be_a(ArrayLiteral) & have_attributes(
+            nodes: [
+                be_a(IntegerLiteral) & have_attributes(value: 1),
+                be_a(IntegerLiteral) & have_attributes(value: 2),
+                be_a(IntegerLiteral) & have_attributes(value: 3),
+            ]
+        )
+
+        expect(code_to_semantic_node('{}')).to be_a(HashLiteral) & have_attributes(pairs: [])
+
+        expect(code_to_semantic_node('{a: 3, "b" => 4}')).to be_a(HashLiteral) & have_attributes(
+            pairs: [
+                [
+                    be_a(SymbolLiteral) & have_attributes(components: ['a']),
+                    be_a(IntegerLiteral) & have_attributes(value: 3),
+                ],
+                [
+                    be_a(StringLiteral) & have_attributes(components: ['b']),
+                    be_a(IntegerLiteral) & have_attributes(value: 4),
+                ],
+            ]
+        )
+    end
+
     it 'translates sends' do
         expect(code_to_semantic_node('foo')).to be_a(Send) & have_attributes(
             target: nil,

@@ -262,6 +262,30 @@ class SymbolLiteral < SemanticNode
     end
 end
 
+class ArrayLiteral < SemanticNode
+    # @return [<SemanticNode>]
+    attr_accessor :nodes
+
+    register_ast_converter :array do |ast_node|
+        ArrayLiteral.new(
+            ast_node: ast_node,
+            nodes: ast_node.to_a.map { |node| from_ast(node) }
+        )
+    end
+end
+
+class HashLiteral < SemanticNode
+    # @return [<(SemanticNode, SemanticNode)>]
+    attr_accessor :pairs
+
+    register_ast_converter :hash do |ast_node|
+        HashLiteral.new(
+            ast_node: ast_node,
+            pairs: ast_node.to_a.map { |pair| pair.to_a.map { from_ast(_1) } }
+        )
+    end
+end
+
 class LocalVariable < SemanticNode
     # @return [Symbol]
     attr_accessor :name
