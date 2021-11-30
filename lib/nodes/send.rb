@@ -50,30 +50,9 @@ class Send < SemanticNode
         # TODO: support numbered arguments
 
         send.block = Block.new(
-            parameters: Parameters.new,
+            parameters: from_ast(args_ast_node),
+            body: from_ast(block_body)
         )
-        args_ast_node.to_a.each do |arg|
-            case arg.type
-            when :arg
-                send.block.parameters.positional_parameters << arg.to_a.first
-            when :kwarg
-                send.block.parameters.keyword_parameters << arg.to_a.first
-            when :optarg
-                name, value = *arg
-                send.block.parameters.optional_parameters << [name, from_ast(value)]
-            when :kwoptarg
-                name, value = *arg
-                send.block.parameters.optional_keyword_parameters << [name, from_ast(value)]
-            when :restarg
-                send.block.parameters.rest_parameter = arg.to_a.first
-            when :kwrestarg
-                send.block.parameters.rest_keyword_parameter = arg.to_a.first 
-            else
-                raise "unsupported argument type: #{arg}"
-            end
-        end
-
-        send.block.body = from_ast(block_body)
 
         send
     end
