@@ -68,3 +68,24 @@ class ClassDefinition < SemanticNode
         )
     end
 end
+
+class SingletonClass < SemanticNode
+    # @return [SemanticNode]
+    attr_accessor :target
+
+    # @return [SemanticNode, nil]
+    attr_accessor :body
+
+    register_ast_converter :sclass do |ast_node|
+        target, body = *ast_node
+
+        target = from_ast(target)
+        body = from_ast(body) if body
+
+        SingletonClass.new(
+            ast_node: ast_node,
+            target: target,
+            body: body,
+        )
+    end
+end

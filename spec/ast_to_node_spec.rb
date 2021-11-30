@@ -388,7 +388,7 @@ RSpec.describe 'AST to SemanticNode' do
         )
     end
 
-    it 'translates class definitions' do
+    it 'translates class definitions and singleton class accesses' do
         expect(code_to_semantic_node('class X; end')).to be_a(ClassDefinition) & have_attributes(
             name: be_a(Constant) & have_attributes(
                 target: nil,
@@ -421,6 +421,47 @@ RSpec.describe 'AST to SemanticNode' do
                     be_a(MethodDefinition) & have_attributes(target: nil, name: :bar, body: nil),
                 ]
             ),
+        )
+
+        expect(code_to_semantic_node("
+            class X
+                def foo
+                end
+
+                class << self
+                    def bar
+                    end
+                end
+            end
+        ")).to be_a(ClassDefinition) & have_attributes(
+            name: be_a(Constant) & have_attributes(
+                target: nil,
+                name: :X,
+            ),
+            superclass: nil,
+            body: be_a(Body) & have_attributes(
+                nodes: [
+                    be_a(MethodDefinition) & have_attributes(target: nil, name: :foo, body: nil),
+                    be_a(SingletonClass) & have_attributes(
+                        target: be_a(SelfKeyword),
+                        body: be_a(MethodDefinition) & have_attributes(target: nil, name: :bar, body: nil),
+                    )
+                ]
+            ),
+        )
+
+        expect(code_to_semantic_node("
+            x = Object.new
+            class << x
+            end
+        ")).to be_a(Body) & have_attributes(
+            nodes: [
+                be_a(LocalVariableAssignment) & have_attributes(name: :x),
+                be_a(SingletonClass) & have_attributes(
+                    target: be_a(LocalVariable) & have_attributes(name: :x),
+                    body: nil,
+                )
+            ]
         )
     end
 end
