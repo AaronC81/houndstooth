@@ -1,4 +1,4 @@
-require_relative '../lib/nodes'
+require_relative '../lib/type_checker'
 require_relative '../lib/cli'
 
 RSpec.configure do |config|

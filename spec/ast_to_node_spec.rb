@@ -1,3 +1,5 @@
+include TypeChecker::SemanticNode
+
 RSpec.describe 'AST to SemanticNode' do
     it 'translates literals' do
         expect(code_to_semantic_node('1')).to be_a(IntegerLiteral) & have_attributes(value: 1)
