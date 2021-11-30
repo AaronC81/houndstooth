@@ -42,3 +42,29 @@ class MethodDefinition < SemanticNode
         )
     end
 end
+
+class ClassDefinition < SemanticNode
+    # @return [SemanticNode]
+    attr_accessor :name
+
+    # @return [SemanticNode, nil]
+    attr_accessor :superclass
+
+    # @return [SemanticNode]
+    attr_accessor :body
+
+    register_ast_converter :class do |ast_node|
+        name, superclass, body = *ast_node
+
+        name = from_ast(name)
+        superclass = from_ast(superclass) if superclass
+        body = from_ast(body) if body
+
+        ClassDefinition.new(
+            ast_node: ast_node,
+            name: name,
+            superclass: superclass,
+            body: body,
+        )
+    end
+end

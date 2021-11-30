@@ -387,4 +387,40 @@ RSpec.describe 'AST to SemanticNode' do
             body: nil,
         )
     end
+
+    it 'translates class definitions' do
+        expect(code_to_semantic_node('class X; end')).to be_a(ClassDefinition) & have_attributes(
+            name: be_a(Constant) & have_attributes(
+                target: nil,
+                name: :X,
+            ),
+            superclass: nil,
+            body: nil,
+        )
+
+        expect(code_to_semantic_node("
+            class X < Y
+                def foo
+                end
+
+                def bar
+                end
+            end
+        ")).to be_a(ClassDefinition) & have_attributes(
+            name: be_a(Constant) & have_attributes(
+                target: nil,
+                name: :X,
+            ),
+            superclass: be_a(Constant) & have_attributes(
+                target: nil,
+                name: :Y,
+            ),
+            body: be_a(Body) & have_attributes(
+                nodes: [
+                    be_a(MethodDefinition) & have_attributes(target: nil, name: :foo, body: nil),
+                    be_a(MethodDefinition) & have_attributes(target: nil, name: :bar, body: nil),
+                ]
+            ),
+        )
+    end
 end
