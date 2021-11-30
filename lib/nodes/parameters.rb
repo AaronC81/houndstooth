@@ -1,6 +1,7 @@
 class Parameters < SemanticNode
     register_ast_converter :args do |ast_node|
         parameters = Parameters.new(
+            ast_node: ast_node,
             positional_parameters: [],
             optional_parameters: [],
             keyword_parameters: [],

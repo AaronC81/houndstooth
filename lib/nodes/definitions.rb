@@ -18,6 +18,7 @@ class MethodDefinition < SemanticNode
         parameters = from_ast(parameters)
 
         MethodDefinition.new(
+            ast_node: ast_node,
             name: name,
             body: body,
             parameters: parameters,
@@ -33,6 +34,7 @@ class MethodDefinition < SemanticNode
         parameters = from_ast(parameters)
 
         MethodDefinition.new(
+            ast_node: ast_node,
             name: name,
             body: body,
             parameters: parameters,
