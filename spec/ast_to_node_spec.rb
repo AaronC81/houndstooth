@@ -347,4 +347,44 @@ RSpec.describe 'AST to SemanticNode' do
             right: be_a(Send) & have_attributes(target: nil, method: :b),
         )
     end
+
+    it 'translates method definitions' do
+        expect(code_to_semantic_node('def x; end')).to be_a(MethodDefinition) & have_attributes(
+            name: :x,
+            parameters: be_a(Parameters) & have_attributes(
+                positional_parameters: [],
+                optional_parameters: [],
+            ),
+            target: nil,
+            body: nil,
+        )
+
+        expect(code_to_semantic_node('def add(x, y = 1); x + y; end')).to be_a(MethodDefinition) & have_attributes(
+            name: :add,
+            parameters: be_a(Parameters) & have_attributes(
+                positional_parameters: [:x],
+                optional_parameters: [[:y, be_a(IntegerLiteral)]],
+            ),
+            target: nil,
+            body: be_a(Send) & have_attributes(
+                target: be_a(LocalVariable) & have_attributes(name: :x),
+                method: :+,
+                positional_arguments: [
+                    be_a(LocalVariable) & have_attributes(name: :y),
+                ]
+            ),
+        )
+
+        expect(code_to_semantic_node('def self.magic; 42; end')).to be_a(MethodDefinition) & have_attributes(
+            name: :magic,
+            target: be_a(SelfKeyword),
+            body: be_a(IntegerLiteral) & have_attributes(value: 42),
+        )
+
+        expect(code_to_semantic_node('def x.double; end')).to be_a(MethodDefinition) & have_attributes(
+            name: :double,
+            target: be_a(Send) & have_attributes(target: nil, method: :x),
+            body: nil,
+        )
+    end
 end
