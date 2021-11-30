@@ -464,4 +464,27 @@ RSpec.describe 'AST to SemanticNode' do
             ]
         )
     end
+
+    it 'translates module definitions' do
+        expect(code_to_semantic_node("
+            module X
+                def foo
+                end
+
+                def bar
+                end
+            end
+        ")).to be_a(ModuleDefinition) & have_attributes(
+            name: be_a(Constant) & have_attributes(
+                target: nil,
+                name: :X,
+            ),
+            body: be_a(Body) & have_attributes(
+                nodes: [
+                    be_a(MethodDefinition) & have_attributes(target: nil, name: :foo, body: nil),
+                    be_a(MethodDefinition) & have_attributes(target: nil, name: :bar, body: nil),
+                ]
+            ),
+        )
+    end
 end

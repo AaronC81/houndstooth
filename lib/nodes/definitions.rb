@@ -50,7 +50,7 @@ class ClassDefinition < SemanticNode
     # @return [SemanticNode, nil]
     attr_accessor :superclass
 
-    # @return [SemanticNode]
+    # @return [SemanticNode, nil]
     attr_accessor :body
 
     register_ast_converter :class do |ast_node|
@@ -85,6 +85,27 @@ class SingletonClass < SemanticNode
         SingletonClass.new(
             ast_node: ast_node,
             target: target,
+            body: body,
+        )
+    end
+end
+
+class ModuleDefinition < SemanticNode
+    # @return [SemanticNode]
+    attr_accessor :name
+
+    # @return [SemanticNode, nil]
+    attr_accessor :body
+
+    register_ast_converter :module do |ast_node|
+        name, body = *ast_node
+
+        name = from_ast(name)
+        body = from_ast(body) if body
+
+        ModuleDefinition.new(
+            ast_node: ast_node,
+            name: name,
             body: body,
         )
     end
