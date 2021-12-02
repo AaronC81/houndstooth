@@ -489,4 +489,177 @@ RSpec.describe 'AST to SemanticNode' do
             ),
         )
     end
+
+    it 'matches comments to translated nodes' do
+        expect(code_to_semantic_node("
+            # Hello
+            puts 'something'
+
+            # Hello again
+            puts 'something else'
+
+            # Outer
+            func(
+                # Inner 1
+                a(b, c, d),
+                # Inner 2
+                e(f, g),
+            )
+        ")).to be_a(Body) & have_attributes(
+            nodes: [
+                be_a(Send) & have_attributes(
+                    target: nil,
+                    method: :puts,
+
+                    comments: [
+                        be_a(Parser::Source::Comment) & have_attributes(text: '# Hello')
+                    ]
+                ),
+
+                be_a(Send) & have_attributes(
+                    target: nil,
+                    method: :puts,
+
+                    comments: [
+                        be_a(Parser::Source::Comment) & have_attributes(text: '# Hello again')
+                    ]
+                ),
+
+                be_a(Send) & have_attributes(
+                    target: nil,
+                    method: :func,
+
+                    comments: [
+                        be_a(Parser::Source::Comment) & have_attributes(text: '# Outer')
+                    ],
+
+                    positional_arguments: [
+                        be_a(Send) & have_attributes(
+                            target: nil,
+                            method: :a,
+
+                            comments: [
+                                be_a(Parser::Source::Comment) & have_attributes(text: '# Inner 1')
+                            ]
+                        ),
+                        be_a(Send) & have_attributes(
+                            target: nil,
+                            method: :e,
+
+                            comments: [
+                                be_a(Parser::Source::Comment) & have_attributes(text: '# Inner 2')
+                            ]
+                        )
+                    ]
+                ),
+            ]
+        )
+
+        expect(code_to_semantic_node("
+            # Comment
+            a.b.c
+        ")).to be_a(Send) & have_attributes(
+            target: be_a(Send) & have_attributes(
+                target: be_a(Send) & have_attributes(
+                    target: nil,
+                    method: :a,
+
+                    comments: [
+                        have_attributes(text: '# Comment')
+                    ]
+                ),
+                method: :b,
+            ),
+            method: :c,
+        )
+
+        expect(code_to_semantic_node("
+            # A
+            a   
+            # B
+                .b
+            # C
+                .c
+        ")).to be_a(Send) & have_attributes(
+            target: be_a(Send) & have_attributes(
+                target: be_a(Send) & have_attributes(
+                    target: nil,
+                    method: :a,
+                    comments: [have_attributes(text: '# A')],
+                ),
+                method: :b,
+                comments: [have_attributes(text: '# B')],
+            ),
+            method: :c,
+            comments: [have_attributes(text: '# C')],
+        )
+
+        expect(code_to_semantic_node("
+            # A module.
+            module M
+                # A class.
+                class C1
+                    # A method.
+                    # Returns a string.
+                    def x
+                        'hello'
+                    end
+
+                    # Another method.
+                    def y(a, b)
+                        a * b
+                    end
+                end
+
+                # Another class.
+                class C2
+                    # A class method.
+                    def self.z
+                        true
+                    end
+                end
+            end
+        ")).to be_a(ModuleDefinition) & have_attributes(
+            name: have_attributes(name: :M),
+            comments: [have_attributes(text: "# A module.")],
+
+            body: be_a(Body) & have_attributes(
+                nodes: [
+                    be_a(ClassDefinition) & have_attributes(
+                        name: have_attributes(name: :C1),
+                        comments: [have_attributes(text: "# A class.")],
+
+                        body: be_a(Body) & have_attributes(
+                            nodes: [
+                                be_a(MethodDefinition) & have_attributes(
+                                    name: :x,
+                                    comments: [
+                                        have_attributes(text: "# A method."),
+                                        have_attributes(text: "# Returns a string."),
+                                    ],
+                                ),
+                                be_a(MethodDefinition) & have_attributes(
+                                    name: :y,
+                                    comments: [
+                                        have_attributes(text: "# Another method."),
+                                    ],
+                                ),
+                            ],
+                        ),
+                    ),
+                    be_a(ClassDefinition) & have_attributes(
+                        name: have_attributes(name: :C2),
+                        comments: [have_attributes(text: "# Another class.")],
+
+                        body: be_a(MethodDefinition) & have_attributes(
+                            name: :z,
+                            comments: [
+                                have_attributes(text: "# A class method."),
+                            ],
+                        ),
+                    ),
+                ]
+            ),
+        )
+    end
 end

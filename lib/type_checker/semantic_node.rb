@@ -15,7 +15,12 @@ module TypeChecker::SemanticNode
         # @return [Parser::AST::Node]
         attr_accessor :ast_node
 
+        # @return [<Parser::Source::Comment>]
+        attr_accessor :comments
+
         def initialize(**kwargs)
+            @comments = []
+
             kwargs.each do |k, v|
                 send :"#{k}=", v
             end
@@ -42,6 +47,28 @@ module TypeChecker::SemanticNode
         def self.register_ast_converter(type, &block)
             @@ast_converters ||= {}
             @@ast_converters[type] = block
+        end
+
+        # TODO: shouldn't use a global!!
+        def self.shift_comments(ast_node)
+            # TODO: don't pick *any* comment before this one, only ones on their own line
+            # In this case:
+            #   x = 2 # foo
+            #   y
+            # We shouldn't match  the `# foo` comment to the `y` Send
+
+            if ast_node.type == :send
+                # Use name of the method as position reference
+                reference_location = ast_node.location.selector
+            else
+                # Not sure what this is, just use the very start of the expression
+                reference_location = ast_node.location.expression
+            end
+
+            comments = []
+            comments << $comments.shift \
+                while $comments.first && $comments.first.location.expression < reference_location
+            comments
         end
     end
 

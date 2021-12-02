@@ -16,12 +16,15 @@ module TypeChecker::SemanticNode
 
         register_ast_converter :def do |ast_node|
             name, parameters, body = *ast_node
+            comments = shift_comments(ast_node)
 
             body = from_ast(body) if body
             parameters = from_ast(parameters)
 
             MethodDefinition.new(
                 ast_node: ast_node,
+                comments: comments,
+
                 name: name,
                 body: body,
                 parameters: parameters,
@@ -31,6 +34,7 @@ module TypeChecker::SemanticNode
 
         register_ast_converter :defs do |ast_node|
             target, name, parameters, body = *ast_node
+            comments = shift_comments(ast_node)
 
             target = from_ast(target)
             body = from_ast(body) if body
@@ -38,6 +42,8 @@ module TypeChecker::SemanticNode
 
             MethodDefinition.new(
                 ast_node: ast_node,
+                comments: comments,
+
                 name: name,
                 body: body,
                 parameters: parameters,
@@ -59,6 +65,7 @@ module TypeChecker::SemanticNode
 
         register_ast_converter :class do |ast_node|
             name, superclass, body = *ast_node
+            comments = shift_comments(ast_node)
 
             name = from_ast(name)
             superclass = from_ast(superclass) if superclass
@@ -66,6 +73,8 @@ module TypeChecker::SemanticNode
 
             ClassDefinition.new(
                 ast_node: ast_node,
+                comments: comments,
+
                 name: name,
                 superclass: superclass,
                 body: body,
@@ -88,7 +97,7 @@ module TypeChecker::SemanticNode
             body = from_ast(body) if body
 
             SingletonClass.new(
-                ast_node: ast_node,
+                ast_node: ast_node,                
                 target: target,
                 body: body,
             )
@@ -105,12 +114,15 @@ module TypeChecker::SemanticNode
 
         register_ast_converter :module do |ast_node|
             name, body = *ast_node
+            comments = shift_comments(ast_node)
 
             name = from_ast(name)
             body = from_ast(body) if body
 
             ModuleDefinition.new(
                 ast_node: ast_node,
+                comments: comments,
+                
                 name: name,
                 body: body,
             )

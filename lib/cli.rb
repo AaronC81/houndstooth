@@ -4,7 +4,8 @@ def code_to_semantic_node(code)
     buffer = Parser::Source::Buffer.new("arg")
     buffer.source = code
 
-    ast_node = Parser::Ruby30.new.parse(buffer)
+    ast_node, comments = Parser::Ruby30.new.parse_with_comments(buffer)
+    $comments = comments
     TypeChecker::SemanticNode.from_ast(ast_node)
 end
 

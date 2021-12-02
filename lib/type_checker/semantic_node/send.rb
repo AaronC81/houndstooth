@@ -18,7 +18,35 @@ module TypeChecker::SemanticNode
 
         register_ast_converter :send do |ast_node|
             target, method, *arguments = *ast_node
+            
+            # Let the target shift comments first!
+            # This is because you can break onto newlines on the dots if you need to apply a comment
+            # to another node.
+            #
+            # Say you need to apply a magic comment to all of the three sends in a chain:
+            #
+            #    a.b.c
+            #
+            # Appying to the first send in the chain (the "deepest target") allows you to do this:
+            #
+            #    # Comment A
+            #    a
+            #      # Comment B
+            #      .b
+            #      # Comment C
+            #      .c
+            #
+            # Rather than what you've have to do if they apply to the end of the chain:
+            #
+            #    # Comment A
+            #    _a = a
+            #    # Comment B
+            #    _b = a.b
+            #    # Comment C
+            #    _c = b.c
+            #
             target = from_ast(target) if target
+            comments = shift_comments(ast_node)
 
             if arguments.last&.type == :kwargs
                 positional_arguments = arguments[0...-1].map { from_ast(_1) }
@@ -33,6 +61,8 @@ module TypeChecker::SemanticNode
 
             Send.new(
                 ast_node: ast_node,
+                comments: comments,
+
                 target: target,
                 method: method,
                 positional_arguments: positional_arguments,
