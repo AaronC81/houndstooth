@@ -1,6 +1,14 @@
 module TypeChecker::SemanticNode
     # Used to group a sequence of nodes into one node - for example, when the body of a method
     # definition contains more than one statement.
+    #
+    # In an ideal world, this class wouldn't exist, and instead we'd use an array everywhere it's
+    # possible for multiple nodes to exist. However, it turns out bodies are valid virtually
+    # everywhere! The following are valid snippets of Ruby code...
+    #
+    #   - 1 + (x = 2; x * x)
+    #   - something((a; b; c), (d; e; f))
+    #   - class (s = :IO; Object.const_get(s))::Something; end
     class Body < Base
         # @return [<SemanticNode>]
         attr_accessor :nodes
