@@ -26,17 +26,6 @@ module TypeChecker::SemanticNode
             end
         end
 
-        # TODO: this may need to be able to produce more than one node
-        # e.g:
-        #   case x
-        #   when y
-        #     ...
-        #   end
-        # Needs to become:
-        #   ___temp_1 = x
-        #   if y === ___temp_1
-        #     ...
-        #   end
         def self.from_ast(ast_node)
             converter = @@ast_converters[ast_node.type]
             raise "unsupported AST node type: #{ast_node}" if converter.nil?
