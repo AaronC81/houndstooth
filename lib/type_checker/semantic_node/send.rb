@@ -16,7 +16,7 @@ module TypeChecker::SemanticNode
         # @return [Block, nil]
         attr_accessor :block
 
-        register_ast_converter :send do |ast_node|
+        register_ast_converter :send do |ast_node, multiple_assignment_lhs: false|
             target, method, *arguments = *ast_node
             
             # Let the target shift comments first!
@@ -47,6 +47,18 @@ module TypeChecker::SemanticNode
             #
             target = from_ast(target) if target
             comments = shift_comments(ast_node)
+
+            if multiple_assignment_lhs
+                next Send.new(
+                    ast_node: ast_node,
+                    comments: comments,
+
+                    target: target,
+                    method: method,
+                    positional_arguments: [MagicPlaceholder.new],
+                    keyword_arguments: [],
+                )
+            end 
 
             if arguments.last&.type == :kwargs
                 positional_arguments = arguments[0...-1].map { from_ast(_1) }

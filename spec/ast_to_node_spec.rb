@@ -188,6 +188,42 @@ RSpec.describe 'AST to SemanticNode' do
             value: be_a(IntegerLiteral) & have_attributes(value: 3),
         )
     end
+    
+    it 'translates multiple assignments' do
+        expect(code_to_semantic_node('a, @b = 1, 2')).to be_a(MultipleAssignment) & have_attributes(
+            targets: [
+                be_a(LocalVariable) & have_attributes(name: :a),
+                be_a(InstanceVariable) & have_attributes(name: :@b),
+            ],
+            value: be_a(ArrayLiteral) & have_attributes(nodes: [
+                be_a(IntegerLiteral) & have_attributes(value: 1),
+                be_a(IntegerLiteral) & have_attributes(value: 2),
+            ]),
+        )
+
+        expect(code_to_semantic_node('self.a, self.b = 1, 2')).to be_a(MultipleAssignment) & have_attributes(
+            targets: [
+                be_a(Send) & have_attributes(
+                    target: be_a(SelfKeyword),
+                    method: :a=,
+                    positional_arguments: [
+                        be_a(MagicPlaceholder)
+                    ]
+                ),
+                be_a(Send) & have_attributes(
+                    target: be_a(SelfKeyword),
+                    method: :b=,
+                    positional_arguments: [
+                        be_a(MagicPlaceholder)
+                    ]
+                ),
+            ],
+            value: be_a(ArrayLiteral) & have_attributes(nodes: [
+                be_a(IntegerLiteral) & have_attributes(value: 1),
+                be_a(IntegerLiteral) & have_attributes(value: 2),
+            ]),
+        )
+    end
 
     it 'translates constants' do
         expect(code_to_semantic_node('X')).to be_a(Constant) & have_attributes(name: :X)

@@ -113,14 +113,17 @@ module TypeChecker::SemanticNode
         # @return [SemanticNode]
         attr_accessor :value
 
-        def self.from_ast_assignment(ast_node, variable_type)
+        def self.from_ast_assignment(ast_node, variable_type, multiple_assignment_lhs: false, **_)
             name, value = *ast_node
 
-            value = from_ast(value)
             target = variable_type.new(
                 ast_node: ast_node,
                 name: name,
             )
+
+            return target if multiple_assignment_lhs && value.nil?
+
+            value = from_ast(value)
 
             VariableAssignment.new(
                 ast_node: ast_node,
@@ -129,9 +132,67 @@ module TypeChecker::SemanticNode
             )
         end
 
-        register_ast_converter(:lvasgn) { |n| from_ast_assignment(n, LocalVariable)    }
-        register_ast_converter(:ivasgn) { |n| from_ast_assignment(n, InstanceVariable) }
-        register_ast_converter(:cvasgn) { |n| from_ast_assignment(n, ClassVariable)    }
-        register_ast_converter(:gvasgn) { |n| from_ast_assignment(n, GlobalVariable)   }
+        register_ast_converter(:lvasgn) { |n, **o| from_ast_assignment(n, LocalVariable, **o)    }
+        register_ast_converter(:ivasgn) { |n, **o| from_ast_assignment(n, InstanceVariable, **o) }
+        register_ast_converter(:cvasgn) { |n, **o| from_ast_assignment(n, ClassVariable, **o)    }
+        register_ast_converter(:gvasgn) { |n, **o| from_ast_assignment(n, GlobalVariable, **o)   }
+    end
+
+    # An assignment to multiple variables at once, destructuring the right-hand-side across the
+    # targets on the left-hand-side.
+    #
+    # A multiple assignment with one target is NOT the same as a single variable assignment!
+    #
+    #   a = [1, 2, 3]
+    #   p a # => [1, 2, 3]
+    #
+    #   a, = [1, 2, 3]
+    #   p a # => 1
+    #
+    class MultipleAssignment < Base
+        # @return [<SemanticNode>]
+        attr_accessor :targets
+
+        # Yep, value singular - "a, b = 1, 2" is desugared by the parser to have an array as the RHS
+        # @return [SemanticNode]
+        attr_accessor :value
+
+        register_ast_converter :masgn do |ast_node|
+            lhs, rhs = *ast_node
+
+            raise "unexpected left-hand-side of multiple assignment" unless lhs.type == :mlhs
+
+            targets = lhs.to_a.map { |n| from_ast(n, multiple_assignment_lhs: true) }
+            value = from_ast(rhs)
+            
+            MultipleAssignment.new(
+                ast_node: ast_node,
+                targets: targets,
+                value: value,
+            )
+        end
+    end
+
+    # TODO: need to support mass-assignments, which parse very weirdly
+    # maybe refactor to have just "Assignment" as a class, with a variable as a target, instead of
+    # what we currently have
+    # Then add a "MassAssignment" later?
+    # They need to be separate: `a, = [1, 2, 3]` is different to `a = [1, 2, 3]`
+
+    # Represents a node which will be filled in magically by a parent node at code runtime, in cases
+    # where complex runtime behaviour means that desugaring isn't possible at parse-time.
+    #
+    # Currently, this is only used where the left-hand-side of a multiple assignment will call a
+    # method (with `Send`), e.g.:
+    #
+    #   self.a, self.b = *[1, 2]
+    #  
+    # This calls self.a=(1) and self.b=(2), but for other RHS values, we might not be able to 
+    # determine what the parameters will be at parse-time. So, this parses as a multiple assignment
+    # to targets (Send self.a=(MagicPlaceholder)) and (Send self.b=(MagicPlaceholder)).
+    #
+    # If you encounter this during node processing, something has probably gone wrong, and you 
+    # should have processed the enclosing multiple assignment earlier!
+    class MagicPlaceholder < Base
     end
 end 

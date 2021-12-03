@@ -26,11 +26,11 @@ module TypeChecker::SemanticNode
             end
         end
 
-        def self.from_ast(ast_node)
+        def self.from_ast(ast_node, **options)
             converter = @@ast_converters[ast_node.type]
             raise "unsupported AST node type: #{ast_node}" if converter.nil?
 
-            converter.(ast_node)
+            converter.(ast_node, **options)
         end
 
         def self.register_ast_converter(type, &block)
