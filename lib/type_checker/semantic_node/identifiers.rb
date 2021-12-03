@@ -66,29 +66,10 @@ module TypeChecker::SemanticNode
                 self.new(ast_node: ast_node, name: ast_node.to_a.first)
             end
         end
-
-        def variable_assignment_mixin(type)
-            # @return [Symbol]
-            attr_accessor :name
-
-            # @return [SemanticNode]
-            attr_accessor :value
-
-            register_ast_converter type do |ast_node|
-                name, value = *ast_node
-                value = from_ast(value)
-                
-                self.new(
-                    ast_node: ast_node,
-                    name: name,
-                    value: value,
-                )
-            end
-        end
     end
 
-    # Represents reading a local variable. The parser looks at surrounding assignments and knows to
-    # generate these instead of `Send`s in the correct places.
+    # Represents a local variable. The parser looks at surrounding assignments and knows to generate
+    # these instead of `Send`s in the correct places.
     class LocalVariable < Base
         extend VariableMixin
         variable_mixin :lvar
@@ -106,45 +87,51 @@ module TypeChecker::SemanticNode
         end
     end
 
-    # Represents writing to a local variable.
-    class LocalVariableAssignment < Base
-        extend VariableMixin
-        variable_assignment_mixin :lvasgn
-    end
-
-    # Represents reading an instance variable.
+    # Represents an instance variable.
     class InstanceVariable < Base
         extend VariableMixin
         variable_mixin :ivar
     end
 
-    # Represents writing to an instance variable.
-    class InstanceVariableAssignment < Base
-        extend VariableMixin
-        variable_assignment_mixin :ivasgn
-    end
-
-    # Represents reading a class variable.
+    # Represents a class variable.
     class ClassVariable < Base
         extend VariableMixin
         variable_mixin :cvar
     end
 
-    # Represents writing to a class variable.
-    class ClassVariableAssignment < Base
-        extend VariableMixin
-        variable_assignment_mixin :cvasgn
-    end
-
-    # Represents reading a global variable.
+    # Represents a global variable.
     class GlobalVariable < Base
         extend VariableMixin
         variable_mixin :gvar
     end
 
-    # Represents writing to a global variable.
-    class GlobalVariableAssignment < Base
-        extend VariableMixin
-        variable_assignment_mixin :gvasgn
+    # Represents an assignment to a variable.
+    class VariableAssignment < Base
+        # @return [SemanticNode]
+        attr_accessor :target
+
+        # @return [SemanticNode]
+        attr_accessor :value
+
+        def self.from_ast_assignment(ast_node, variable_type)
+            name, value = *ast_node
+
+            value = from_ast(value)
+            target = variable_type.new(
+                ast_node: ast_node,
+                name: name,
+            )
+
+            VariableAssignment.new(
+                ast_node: ast_node,
+                target: target,
+                value: value,
+            )
+        end
+
+        register_ast_converter(:lvasgn) { |n| from_ast_assignment(n, LocalVariable)    }
+        register_ast_converter(:ivasgn) { |n| from_ast_assignment(n, InstanceVariable) }
+        register_ast_converter(:cvasgn) { |n| from_ast_assignment(n, ClassVariable)    }
+        register_ast_converter(:gvasgn) { |n| from_ast_assignment(n, GlobalVariable)   }
     end
-end
+end 

@@ -160,8 +160,8 @@ RSpec.describe 'AST to SemanticNode' do
     it 'translates local variables' do
         expect(code_to_semantic_node('x = 3; x')).to be_a(Body) & have_attributes(
             nodes: [
-                be_a(LocalVariableAssignment) & have_attributes(
-                    name: :x,
+                be_a(VariableAssignment) & have_attributes(
+                    target: be_a(LocalVariable) & have_attributes(name: :x),
                     value: be_a(IntegerLiteral) & have_attributes(value: 3),
                 ),
                 be_a(LocalVariable) & have_attributes(name: :x),
@@ -171,20 +171,20 @@ RSpec.describe 'AST to SemanticNode' do
 
     it 'translates instance, class, and global variables' do
         expect(code_to_semantic_node('@x')).to be_a(InstanceVariable) & have_attributes(name: :@x)
-        expect(code_to_semantic_node('@x = 3')).to be_a(InstanceVariableAssignment) & have_attributes(
-            name: :@x,
+        expect(code_to_semantic_node('@x = 3')).to be_a(VariableAssignment) & have_attributes(
+            target: be_a(InstanceVariable) & have_attributes(name: :@x),
             value: be_a(IntegerLiteral) & have_attributes(value: 3),
         )
 
         expect(code_to_semantic_node('@@x')).to be_a(ClassVariable) & have_attributes(name: :@@x)
-        expect(code_to_semantic_node('@@x = 3')).to be_a(ClassVariableAssignment) & have_attributes(
-            name: :@@x,
+        expect(code_to_semantic_node('@@x = 3')).to be_a(VariableAssignment) & have_attributes(
+            target: be_a(ClassVariable) & have_attributes(name: :@@x),
             value: be_a(IntegerLiteral) & have_attributes(value: 3),
         )
 
         expect(code_to_semantic_node('$x')).to be_a(GlobalVariable) & have_attributes(name: :$x)
-        expect(code_to_semantic_node('$x = 3')).to be_a(GlobalVariableAssignment) & have_attributes(
-            name: :$x,
+        expect(code_to_semantic_node('$x = 3')).to be_a(VariableAssignment) & have_attributes(
+            target: be_a(GlobalVariable) & have_attributes(name: :$x),
             value: be_a(IntegerLiteral) & have_attributes(value: 3),
         )
     end
@@ -298,13 +298,14 @@ RSpec.describe 'AST to SemanticNode' do
         ")).to be_a(Body) & have_attributes(
             nodes: [
                 # x = foo(3)
-                be_a(LocalVariableAssignment) & have_attributes(
-                    name: :x,
+                be_a(VariableAssignment) & have_attributes(
+                    target: be_a(LocalVariable) & have_attributes(name: :x),
                     value: be_a(Send) & have_attributes(method: :foo),
                 ),
 
                 # ___fabricated = x
-                be_a(LocalVariableAssignment) & have_attributes(
+                be_a(VariableAssignment) & have_attributes(
+                    target: be_a(LocalVariable) & have_attributes(fabricated: true),
                     value: be_a(LocalVariable) & have_attributes(name: :x),
                 ),
 
@@ -458,7 +459,7 @@ RSpec.describe 'AST to SemanticNode' do
             end
         ")).to be_a(Body) & have_attributes(
             nodes: [
-                be_a(LocalVariableAssignment) & have_attributes(name: :x),
+                be_a(VariableAssignment) & have_attributes(target: be_a(LocalVariable)),
                 be_a(SingletonClass) & have_attributes(
                     target: be_a(LocalVariable) & have_attributes(name: :x),
                     body: nil,

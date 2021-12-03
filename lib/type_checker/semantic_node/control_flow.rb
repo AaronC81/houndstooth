@@ -65,9 +65,9 @@ module TypeChecker::SemanticNode
 
             # Convert into assignment and conditional chain
             fabricated_subject_var = LocalVariable.fabricate
-            fabricated_subject_var_asgn = LocalVariableAssignment.new(
+            fabricated_subject_var_asgn = VariableAssignment.new(
                 ast_node: nil,
-                name: fabricated_subject_var.name,
+                target: fabricated_subject_var,
                 value: subject,
             )
 
