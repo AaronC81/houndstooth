@@ -38,8 +38,15 @@ module TypeChecker::SemanticNode
         # @return [SemanticNode]
         attr_accessor :value
 
-        register_ast_converter :splat do |ast_node|
-            Splat.new(ast_node: ast_node, value: from_ast(ast_node.to_a.first))
+        # It is possible for splats to appear on the LHS of an assigment, so we need to handle that
+        register_ast_converter :splat do |ast_node, multiple_assignment_lhs: false|
+            Splat.new(
+                ast_node: ast_node,
+                value: from_ast(
+                    ast_node.to_a.first,
+                    multiple_assignment_lhs: multiple_assignment_lhs,
+                )
+            )
         end
     end
 end
