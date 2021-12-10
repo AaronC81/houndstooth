@@ -10,6 +10,7 @@ module TypeChecker::SemanticNode
                 optional_keyword_parameters: [],
                 rest_parameter: nil,
                 rest_keyword_parameter: nil,
+                only_proc_parameter: false,
             )
 
             ast_node.to_a.each do |arg|
@@ -28,6 +29,8 @@ module TypeChecker::SemanticNode
                     parameters.rest_parameter = arg.to_a.first
                 when :kwrestarg
                     parameters.rest_keyword_parameter = arg.to_a.first 
+                when :procarg0
+                    parameters.only_proc_parameter = true
                 else
                     raise "unsupported argument type: #{arg}"
                 end
@@ -36,6 +39,10 @@ module TypeChecker::SemanticNode
             parameters
         end
 
+        # True if this block of parameters takes the magic "progarc0", which in blocks can represent
+        # all parameters given in an array.
+        # @return [Boolean]
+        attr_accessor :only_proc_parameter
 
         # @return [<Symbol>]
         attr_accessor :positional_parameters

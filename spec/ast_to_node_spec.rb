@@ -98,6 +98,25 @@ RSpec.describe 'AST to SemanticNode' do
             block: nil,
         )
 
+        expect(code_to_semantic_node('array.filter { |x| x.even? }')).to be_a(Send) & have_attributes(
+            target: be_a(Send) & have_attributes(target: nil, method: :array),
+            method: :filter,
+            positional_arguments: [],
+            keyword_arguments: [],
+
+            block: be_a(Block) & have_attributes(
+                parameters: be_a(Parameters) & have_attributes(
+                    only_proc_parameter: true,
+                    positional_parameters: [],
+                    optional_parameters: [],
+                    keyword_parameters: [],
+                    optional_keyword_parameters: [],
+                ),
+
+                body: be_a(Send)
+            )
+        )
+
         expect(code_to_semantic_node('array.each_cons(2) { |a, b| a + b }')).to be_a(Send) & have_attributes(
             target: be_a(Send) & have_attributes(target: nil, method: :array),
             method: :each_cons,

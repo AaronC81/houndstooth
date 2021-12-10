@@ -89,8 +89,6 @@ module TypeChecker::SemanticNode
             send = from_ast(send_ast_node)
             send.ast_node = ast_node
 
-
-            # TODO: support "procarg0" form
             # TODO: support numbered arguments
 
             send.block = Block.new(
