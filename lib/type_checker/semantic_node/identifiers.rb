@@ -123,6 +123,7 @@ module TypeChecker::SemanticNode
 
             return target if multiple_assignment_lhs && value.nil?
 
+            p ast_node
             value = from_ast(value)
 
             VariableAssignment.new(

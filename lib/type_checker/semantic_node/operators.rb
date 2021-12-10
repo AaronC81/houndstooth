@@ -32,6 +32,16 @@ module TypeChecker::SemanticNode
             BooleanOr.new(ast_node: ast_node, left: left, right: right)
         end 
     end
+
+    # A splat: `a = *b` or `[1, 2, *[3, 4], 5]`
+    class Splat < Base
+        # @return [SemanticNode]
+        attr_accessor :value
+
+        register_ast_converter :splat do |ast_node|
+            Splat.new(ast_node: ast_node, value: from_ast(ast_node.to_a.first))
+        end
+    end
 end
 
 # TODO: and/or-assign

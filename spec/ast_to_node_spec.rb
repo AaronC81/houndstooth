@@ -763,4 +763,17 @@ RSpec.describe 'AST to SemanticNode' do
             ),
         )
     end
+
+    it 'translates splats' do
+        expect(code_to_semantic_node("a = *b")).to be_a(VariableAssignment) & have_attributes(
+            target: be_a(LocalVariable) & have_attributes(name: :a),
+            value: be_a(ArrayLiteral) & have_attributes(
+                nodes: [
+                    be_a(Splat) & have_attributes(
+                        value: be_a(Send) & have_attributes(method: :b)
+                    )
+                ]
+            )
+        )
+    end
 end
