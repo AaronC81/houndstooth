@@ -117,6 +117,25 @@ RSpec.describe 'AST to SemanticNode' do
             )
         )
 
+        expect(code_to_semantic_node('array.filter { _1.even? }')).to be_a(Send) & have_attributes(
+            target: be_a(Send) & have_attributes(target: nil, method: :array),
+            method: :filter,
+            positional_arguments: [],
+            keyword_arguments: [],
+
+            block: be_a(Block) & have_attributes(
+                parameters: be_a(Parameters) & have_attributes(
+                    only_proc_parameter: true,
+                    positional_parameters: [],
+                    optional_parameters: [],
+                    keyword_parameters: [],
+                    optional_keyword_parameters: [],
+                ),
+
+                body: be_a(Send)
+            )
+        )
+
         expect(code_to_semantic_node('array.each_cons(2) { |a, b| a + b }')).to be_a(Send) & have_attributes(
             target: be_a(Send) & have_attributes(target: nil, method: :array),
             method: :each_cons,
@@ -138,6 +157,32 @@ RSpec.describe 'AST to SemanticNode' do
                     method: :+,
                     positional_arguments: [
                         be_a(LocalVariable) & have_attributes(name: :b)
+                    ],
+                )
+            )
+        )
+
+        expect(code_to_semantic_node('array.each_cons(2) { _1 + _2 }')).to be_a(Send) & have_attributes(
+            target: be_a(Send) & have_attributes(target: nil, method: :array),
+            method: :each_cons,
+            positional_arguments: [
+                be_a(IntegerLiteral) & have_attributes(value: 2),
+            ],
+            keyword_arguments: [],
+
+            block: be_a(Block) & have_attributes(
+                parameters: be_a(Parameters) & have_attributes(
+                    positional_parameters: [:_1, :_2],
+                    optional_parameters: [],
+                    keyword_parameters: [],
+                    optional_keyword_parameters: [],
+                ),
+
+                body: be_a(Send) & have_attributes(
+                    target: be_a(LocalVariable) & have_attributes(name: :_1),
+                    method: :+,
+                    positional_arguments: [
+                        be_a(LocalVariable) & have_attributes(name: :_2)
                     ],
                 )
             )

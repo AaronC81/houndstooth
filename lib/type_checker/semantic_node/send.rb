@@ -89,10 +89,57 @@ module TypeChecker::SemanticNode
             send = from_ast(send_ast_node)
             send.ast_node = ast_node
 
-            # TODO: support numbered arguments
-
             send.block = Block.new(
                 parameters: from_ast(args_ast_node),
+                body: from_ast(block_body)
+            )
+
+            send
+        end
+
+        # Numblocks are just converted into regular blocks with the same parameter names, e.g.:
+        #
+        #   array.map { _1 + 1 }
+        #
+        # Becomes:
+        #
+        #   array.map { |_1| _1 + 1 }
+        #
+        register_ast_converter :numblock do |ast_node|
+            send_ast_node, args_count, block_body = *ast_node
+
+            # Parse the `send`, we'll set block properties afterwards
+            send = from_ast(send_ast_node)
+            send.ast_node = ast_node
+
+            # Build a fake set of parameters for the block
+            # We need to respect the "procarg0" semantics by checking if there's only 1 parameter
+            if args_count == 1
+                parameters = Parameters.new(
+                    ast_node: block_body,
+                    positional_parameters: [],
+                    optional_parameters: [],
+                    keyword_parameters: [],
+                    optional_keyword_parameters: [],
+                    rest_parameter: nil,
+                    rest_keyword_parameter: nil,
+                    only_proc_parameter: true,
+                )
+            else
+                parameters = Parameters.new(
+                    ast_node: block_body,
+                    positional_parameters: args_count.times.map { |i| :"_#{i + 1}" },
+                    optional_parameters: [],
+                    keyword_parameters: [],
+                    optional_keyword_parameters: [],
+                    rest_parameter: nil,
+                    rest_keyword_parameter: nil,
+                    only_proc_parameter: false,
+                )
+            end
+
+            send.block = Block.new(
+                parameters: parameters,
                 body: from_ast(block_body)
             )
 
