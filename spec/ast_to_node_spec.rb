@@ -529,7 +529,7 @@ RSpec.describe 'AST to SemanticNode' do
             target: nil,
         )
 
-        expect(code_to_semantic_node('def x(x, ...); end')).to be_a(MethodDefinition) & have_attributes(
+        expect(code_to_semantic_node('def x(x, ...); y(...); end')).to be_a(MethodDefinition) & have_attributes(
             name: :x,
             parameters: be_a(Parameters) & have_attributes(
                 positional_parameters: [:x],
@@ -537,6 +537,13 @@ RSpec.describe 'AST to SemanticNode' do
                 has_forward_parameter: true,
             ),
             target: nil,
+            body: be_a(Send) & have_attributes(
+                target: nil,
+                method: :y,
+                positional_arguments: [
+                    be_a(ForwardedArguments),
+                ]
+            )
         )
 
         expect(code_to_semantic_node('def self.magic; 42; end')).to be_a(MethodDefinition) & have_attributes(

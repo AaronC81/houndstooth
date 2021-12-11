@@ -155,4 +155,12 @@ module TypeChecker::SemanticNode
         # @return [SemanticNode]
         attr_accessor :body
     end
+
+    # A special argument which may appear in the arguments to a `Send`, when arguments have been
+    # forwarded from the enclosing method into it.
+    class ForwardedArguments < Base
+        register_ast_converter :forwarded_args do |ast_node|
+            ForwardedArguments.new(ast_node: ast_node)
+        end
+    end
 end
