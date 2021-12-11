@@ -60,7 +60,7 @@ module TypeChecker::SemanticNode
             subject, *whens, else_case = *ast_node
 
             subject = from_ast(subject)
-            whens = whens.map { |w| w.to_a.map { from_ast(_1) } } # [[value, body], ...]
+            whens = whens.map { |w| w.to_a.map { from_ast(_1) if _1 } } # [[value, body], ...]
             else_case = from_ast(else_case) if else_case
 
             # Convert into assignment and conditional chain
