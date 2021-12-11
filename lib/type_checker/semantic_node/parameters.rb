@@ -10,7 +10,9 @@ module TypeChecker::SemanticNode
                 optional_keyword_parameters: [],
                 rest_parameter: nil,
                 rest_keyword_parameter: nil,
+                block_parameter: nil,
                 only_proc_parameter: false,
+                has_forward_parameter: false,
             )
 
             ast_node.to_a.each do |arg|
@@ -31,6 +33,10 @@ module TypeChecker::SemanticNode
                     parameters.rest_keyword_parameter = arg.to_a.first 
                 when :procarg0
                     parameters.only_proc_parameter = true
+                when :blockarg
+                    parameters.block_parameter = arg.to_a.first
+                when :forward_arg
+                    parameters.has_forward_parameter = true
                 else
                     raise "unsupported argument type: #{arg}"
                 end
@@ -61,5 +67,12 @@ module TypeChecker::SemanticNode
 
         # @return [Symbol, nil]
         attr_accessor :rest_keyword_parameter
+
+        # @return [Symbol, nil]
+        attr_accessor :block_parameter
+
+        # True if this method has a `...` parameter.
+        # @return [Boolean]
+        attr_accessor :has_forward_parameter
     end
 end

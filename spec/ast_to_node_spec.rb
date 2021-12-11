@@ -488,6 +488,28 @@ RSpec.describe 'AST to SemanticNode' do
             ),
         )
 
+        expect(code_to_semantic_node('def x(*x, **y, &blk); end')).to be_a(MethodDefinition) & have_attributes(
+            name: :x,
+            parameters: be_a(Parameters) & have_attributes(
+                positional_parameters: [],
+                optional_parameters: [],
+                rest_parameter: :x,
+                rest_keyword_parameter: :y,
+                block_parameter: :blk,
+            ),
+            target: nil,
+        )
+
+        expect(code_to_semantic_node('def x(x, ...); end')).to be_a(MethodDefinition) & have_attributes(
+            name: :x,
+            parameters: be_a(Parameters) & have_attributes(
+                positional_parameters: [:x],
+                optional_parameters: [],
+                has_forward_parameter: true,
+            ),
+            target: nil,
+        )
+
         expect(code_to_semantic_node('def self.magic; 42; end')).to be_a(MethodDefinition) & have_attributes(
             name: :magic,
             target: be_a(SelfKeyword),
