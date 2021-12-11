@@ -237,6 +237,15 @@ RSpec.describe 'AST to SemanticNode' do
                 )
             )
         )
+
+        expect(code_to_semantic_node('x&.y')).to be_a(Send) & have_attributes(
+            target: be_a(Send) & have_attributes(
+                target: nil,
+                method: :x,
+            ),
+            method: :y,
+            safe_navigation: true,
+        )
     end
 
     it 'translates local variables' do

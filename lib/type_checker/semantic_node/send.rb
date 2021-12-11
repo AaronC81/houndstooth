@@ -13,6 +13,9 @@ module TypeChecker::SemanticNode
         # @return [{SemanticNode => SemanticNode}]
         attr_accessor :keyword_arguments
 
+        # @return [Boolean]
+        attr_accessor :safe_navigation
+
         # @return [Block, nil]
         attr_accessor :block
 
@@ -57,13 +60,15 @@ module TypeChecker::SemanticNode
                     method: method,
                     positional_arguments: [MagicPlaceholder.new],
                     keyword_arguments: [],
+                    safe_navigation: false,
                 )
             end 
 
             if arguments.last&.type == :kwargs
                 positional_arguments = arguments[0...-1].map { from_ast(_1) }
                 keyword_arguments = arguments.last.to_a.to_h do |kwarg|
-                    raise unless kwarg.type == :pair
+                    next [:_, nil] if kwarg.type == :kwsplat
+                    raise "Expected #{kwarg} to be a pair" unless kwarg.type == :pair
                     kwarg.to_a.map { from_ast(_1) }
                 end
             else
@@ -79,7 +84,19 @@ module TypeChecker::SemanticNode
                 method: method,
                 positional_arguments: positional_arguments,
                 keyword_arguments: keyword_arguments,
+                safe_navigation: false,
             )
+        end
+
+        register_ast_converter :csend do |ast_node, multiple_assignment_lhs: false|
+            # Convert this csend into a send
+            equivalent_send_node = Parser::AST::Node.new(:send, ast_node, location: ast_node.location)
+
+            # Convert that into a semantic node and set the safe flag
+            send = from_ast(equivalent_send_node, multiple_assignment_lhs: multiple_assignment_lhs)
+            send.safe_navigation = true
+
+            send
         end
 
         register_ast_converter :block do |ast_node|
