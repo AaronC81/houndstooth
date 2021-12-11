@@ -108,4 +108,25 @@ module TypeChecker::SemanticNode
             )
         end
     end
+
+    # A while loop.
+    #
+    # TODO: It's possible this can be desugared into Kernel.loop { break unless condition; body }
+    class While < Base
+        # @return [SemanticNode]
+        attr_accessor :condition
+
+        # @return [SemanticNode]
+        attr_accessor :body
+
+        register_ast_converter :while do |ast_node|
+            condition, body = ast_node.to_a.map { from_ast(_1) if _1 }
+
+            While.new(
+                ast_node: ast_node,
+                condition: condition,
+                body: body,
+            )
+        end
+    end
 end

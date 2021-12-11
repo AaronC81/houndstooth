@@ -342,7 +342,7 @@ RSpec.describe 'AST to SemanticNode' do
         expect(code_to_semantic_node('nil')).to be_a(NilKeyword)
     end
 
-    it 'translates conditionals' do
+    it 'translates control flow statements' do
         expect(code_to_semantic_node('if foo; bar; end')).to be_a(Conditional) & have_attributes(
             condition: be_a(Send) & have_attributes(
                 target: nil,
@@ -436,6 +436,17 @@ RSpec.describe 'AST to SemanticNode' do
                     )
                 )
             ]
+        )
+
+        expect(code_to_semantic_node("while x; y; end")).to be_a(While) & have_attributes(
+            condition: be_a(Send) & have_attributes(
+                target: nil,
+                method: :x,
+            ),
+            body: be_a(Send) & have_attributes(
+                target: nil,
+                method: :y,
+            )
         )
     end
 
