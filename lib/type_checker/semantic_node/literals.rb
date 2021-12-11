@@ -100,25 +100,14 @@ module TypeChecker::SemanticNode
         # @return [bool]
         attr_accessor :inclusive
 
-        register_ast_converter :irange do |ast_node|
+        register_ast_converter :irange, :erange do |ast_node|
             first, last = ast_node.to_a.map { from_ast(_1) if _1 }
 
             RangeLiteral.new(
                 ast_node: ast_node,
                 first: first,
                 last: last,
-                inclusive: true,
-            )
-        end
-
-        register_ast_converter :erange do |ast_node|
-            first, last = ast_node.to_a.map { from_ast(_1) if _1 }
-
-            RangeLiteral.new(
-                ast_node: ast_node,
-                first: first,
-                last: last,
-                inclusive: false,
+                inclusive: (ast_node.type == :irange),
             )
         end
     end

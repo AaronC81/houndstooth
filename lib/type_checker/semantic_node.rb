@@ -33,9 +33,11 @@ module TypeChecker::SemanticNode
             converter.(ast_node, **options)
         end
 
-        def self.register_ast_converter(type, &block)
+        def self.register_ast_converter(*types, &block)
             @@ast_converters ||= {}
-            @@ast_converters[type] = block
+            types.each do |type|
+                @@ast_converters[type] = block
+            end
         end
 
         # TODO: shouldn't use a global!!
