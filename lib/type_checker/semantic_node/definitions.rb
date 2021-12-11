@@ -128,4 +128,26 @@ module TypeChecker::SemanticNode
             )
         end
     end
+
+    # An alias.
+    #
+    # Aliases are usually between statically-named methods given with just identifiers, but they
+    # can also be between methods named with dynamic symbols, and even between global variables.
+    class Alias < Base
+        # @return [SemanticNode]
+        attr_accessor :from
+
+        # @return [SemanticNode]
+        attr_accessor :to
+
+        register_ast_converter :alias do |ast_node|
+            to, from = ast_node.to_a.map { from_ast(_1) }
+
+            Alias.new(
+                ast_node: ast_node,
+                from: from,
+                to: to,
+            )
+        end
+    end
 end

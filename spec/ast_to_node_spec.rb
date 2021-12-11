@@ -491,6 +491,13 @@ RSpec.describe 'AST to SemanticNode' do
         )
     end
 
+    it 'translates aliases' do
+        expect(code_to_semantic_node('alias x y')).to be_a(Alias) & have_attributes(
+            from: be_a(SymbolLiteral) & have_attributes(components: ['x']),
+            from: be_a(SymbolLiteral) & have_attributes(components: ['y']),
+        )
+    end
+
     it 'translates class definitions and singleton class accesses' do
         expect(code_to_semantic_node('class X; end')).to be_a(ClassDefinition) & have_attributes(
             name: be_a(Constant) & have_attributes(
