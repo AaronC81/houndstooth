@@ -30,6 +30,24 @@ RSpec.describe 'AST to SemanticNode' do
                 '=',
             ]
         )
+
+        expect(code_to_semantic_node('1..3')).to be_a(RangeLiteral) & have_attributes(
+            first: be_a(IntegerLiteral) & have_attributes(value: 1),
+            last: be_a(IntegerLiteral) & have_attributes(value: 3),
+            inclusive: true,
+        )
+
+        expect(code_to_semantic_node('1...3')).to be_a(RangeLiteral) & have_attributes(
+            first: be_a(IntegerLiteral) & have_attributes(value: 1),
+            last: be_a(IntegerLiteral) & have_attributes(value: 3),
+            inclusive: false,
+        )
+
+        expect(code_to_semantic_node('1..')).to be_a(RangeLiteral) & have_attributes(
+            first: be_a(IntegerLiteral) & have_attributes(value: 1),
+            last: be(nil),
+            inclusive: true,
+        )
     end
 
     it 'translates compound literals' do

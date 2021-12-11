@@ -88,4 +88,38 @@ module TypeChecker::SemanticNode
             )
         end
     end
+
+    # A range literal.
+    class RangeLiteral < Base
+        # @return [SemanticNode, nil]
+        attr_accessor :first
+
+        # @return [SemanticNode, nil]
+        attr_accessor :last
+
+        # @return [bool]
+        attr_accessor :inclusive
+
+        register_ast_converter :irange do |ast_node|
+            first, last = ast_node.to_a.map { from_ast(_1) if _1 }
+
+            RangeLiteral.new(
+                ast_node: ast_node,
+                first: first,
+                last: last,
+                inclusive: true,
+            )
+        end
+
+        register_ast_converter :erange do |ast_node|
+            first, last = ast_node.to_a.map { from_ast(_1) if _1 }
+
+            RangeLiteral.new(
+                ast_node: ast_node,
+                first: first,
+                last: last,
+                inclusive: false,
+            )
+        end
+    end
 end
