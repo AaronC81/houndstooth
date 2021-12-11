@@ -46,8 +46,8 @@ module TypeChecker::SemanticNode
             #   y
             # We shouldn't match  the `# foo` comment to the `y` Send
 
-            if ast_node.type == :send
-                # Use name of the method as position reference
+            if ast_node.type == :send && ast_node.location.selector
+                # Use name of the method as position reference, if available
                 reference_location = ast_node.location.selector
             else
                 # Not sure what this is, just use the very start of the expression
