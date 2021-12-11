@@ -49,6 +49,16 @@ module TypeChecker::SemanticNode
             )
         end
     end
+
+    # A `defined?` check: `defined? x`
+    class IsDefined < Base
+        # @return [SemanticNode]
+        attr_accessor :value
+
+        register_ast_converter :defined? do |ast_node|
+            IsDefined.new(ast_node: ast_node, value: from_ast(ast_node.to_a.first))
+        end
+    end
 end
 
 # TODO: and/or-assign

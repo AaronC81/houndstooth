@@ -783,4 +783,10 @@ RSpec.describe 'AST to SemanticNode' do
             )
         )
     end
+
+    it 'translates defined? checks' do
+        expect(code_to_semantic_node("defined? a")).to be_a(IsDefined) & have_attributes(
+            value: be_a(Send) & have_attributes(method: :a),
+        )
+    end
 end
