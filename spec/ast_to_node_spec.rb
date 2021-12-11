@@ -449,6 +449,16 @@ RSpec.describe 'AST to SemanticNode' do
             left: be_a(Send) & have_attributes(target: nil, method: :a),
             right: be_a(Send) & have_attributes(target: nil, method: :b),
         )
+
+        expect(code_to_semantic_node('a &&= b')).to be_a(BooleanAndAssignment) & have_attributes(
+            target: be_a(LocalVariable) & have_attributes(name: :a),
+            value: be_a(Send) & have_attributes(target: nil, method: :b),
+        )
+
+        expect(code_to_semantic_node('a ||= b')).to be_a(BooleanOrAssignment) & have_attributes(
+            target: be_a(LocalVariable) & have_attributes(name: :a),
+            value: be_a(Send) & have_attributes(target: nil, method: :b),
+        )
     end
 
     it 'translates method definitions' do
