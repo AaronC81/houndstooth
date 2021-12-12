@@ -866,4 +866,24 @@ RSpec.describe 'AST to SemanticNode' do
             value: be_a(Send) & have_attributes(method: :a),
         )
     end
+
+    it 'translates control-flow expressions such as return' do
+        expect(code_to_semantic_node("return")).to be_a(Return) & have_attributes(value: nil)
+        expect(code_to_semantic_node("return 3")).to be_a(Return) & have_attributes(
+            value: be_a(IntegerLiteral) & have_attributes(value: 3),
+        )
+        expect(code_to_semantic_node("return 3, 4")).to be_a(Return) & have_attributes(
+            value: be_a(ArrayLiteral) & have_attributes(
+                nodes: [
+                    be_a(IntegerLiteral) & have_attributes(value: 3),
+                    be_a(IntegerLiteral) & have_attributes(value: 4),
+                ],
+            )
+        )
+
+        # These need minimal tests because they'll all behave the same, they derive from the same
+        # mixin
+        expect(code_to_semantic_node("break")).to be_a(Break) & have_attributes(value: nil)
+        expect(code_to_semantic_node("next")).to be_a(Next) & have_attributes(value: nil)
+    end
 end

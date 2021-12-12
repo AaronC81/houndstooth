@@ -129,4 +129,46 @@ module TypeChecker::SemanticNode
             )
         end
     end
+
+    # A mixin for defining expressions which affect the control of their enclosing contexts, e.g.
+    # `return` and `break`. These all take one optional arguments, so we can deduplicate their
+    # definitions.
+    module ControlExpressionMixin
+        def control_exp_mixin(type)
+            # @return [SemanticNode, nil]
+            attr_accessor :value
+            
+            register_ast_converter type do |ast_node|
+                if ast_node.to_a.length > 1
+                    value = ArrayLiteral.new(
+                        ast_node: ast_node,
+                        nodes: ast_node.to_a.map { from_ast(_1) },
+                    )
+                else
+                    value = ast_node.to_a.first
+                    value = from_ast(value) if value
+                end
+
+                self.new(ast_node: ast_node, value: value)
+            end
+        end
+    end
+
+    # A return expression.
+    class Return < Base
+        extend ControlExpressionMixin
+        control_exp_mixin :return
+    end
+
+    # A break expression.
+    class Break < Base
+        extend ControlExpressionMixin
+        control_exp_mixin :break
+    end
+
+    # A next expression.
+    class Next < Base
+        extend ControlExpressionMixin
+        control_exp_mixin :next
+    end
 end
