@@ -316,6 +316,25 @@ RSpec.describe 'AST to SemanticNode' do
         )
     end
 
+    it 'translates op-assignments' do
+        expect(code_to_semantic_node('x = 1; x += 3')).to be_a(Body) & have_attributes(
+            nodes: [
+                be_a(VariableAssignment),
+                be_a(VariableAssignment) & have_attributes(
+                    target: be_a(LocalVariable) & have_attributes(name: :x),
+                    value: be_a(Send) & have_attributes(
+                        target: be_a(LocalVariable) & have_attributes(name: :x),
+                        method: :+,
+
+                        positional_arguments: [
+                            be_a(IntegerLiteral) & have_attributes(value: 3),
+                        ]
+                    )
+                )
+            ]
+        )
+    end
+
     it 'translates constants' do
         expect(code_to_semantic_node('X')).to be_a(Constant) & have_attributes(name: :X)
 

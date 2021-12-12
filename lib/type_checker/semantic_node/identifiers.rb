@@ -123,7 +123,6 @@ module TypeChecker::SemanticNode
 
             return target if multiple_assignment_lhs && value.nil?
 
-            p ast_node
             value = from_ast(value)
 
             VariableAssignment.new(
@@ -137,6 +136,31 @@ module TypeChecker::SemanticNode
         register_ast_converter(:ivasgn) { |n, **o| from_ast_assignment(n, InstanceVariable, **o) }
         register_ast_converter(:cvasgn) { |n, **o| from_ast_assignment(n, ClassVariable, **o)    }
         register_ast_converter(:gvasgn) { |n, **o| from_ast_assignment(n, GlobalVariable, **o)   }
+
+        # Convert `x += 3` into `x = x + 3`
+        register_ast_converter :op_asgn do |ast_node, **o|
+            target, op, value = *ast_node
+
+            # Get target as an e.g. LocalVariable
+            target = from_ast(target, multiple_assignment_lhs: true)
+
+            # TODO: No nice way of converting between =/non-= versions of method names currently
+            # Also would need same considerations as noted for ||=/&&= to support
+            raise "op-assign with Send LHS is not currently supported" if target.is_a?(Send)
+
+            value = from_ast(value)
+
+            VariableAssignment.new(
+                ast_node: ast_node,
+                target: target,
+                value: Send.new(
+                    method: op,
+                    target: target,
+
+                    positional_arguments: [value]
+                )
+            )
+        end
     end
 
     # An assignment to multiple variables at once, destructuring the right-hand-side across the
