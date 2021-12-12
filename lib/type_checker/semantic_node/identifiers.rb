@@ -174,12 +174,6 @@ module TypeChecker::SemanticNode
         end
     end
 
-    # TODO: need to support mass-assignments, which parse very weirdly
-    # maybe refactor to have just "Assignment" as a class, with a variable as a target, instead of
-    # what we currently have
-    # Then add a "MassAssignment" later?
-    # They need to be separate: `a, = [1, 2, 3]` is different to `a = [1, 2, 3]`
-
     # Represents a node which will be filled in magically by a parent node at code runtime, in cases
     # where complex runtime behaviour means that desugaring isn't possible at parse-time.
     #
