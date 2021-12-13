@@ -18,8 +18,9 @@ module TypeChecker::SemanticNode
         # @return [<Parser::Source::Comment>]
         attr_accessor :comments
 
-        def initialize(**kwargs)
+        def initialize(ast_node:, **kwargs)
             @comments = []
+            @ast_node = ast_node
 
             kwargs.each do |k, v|
                 send :"#{k}=", v

@@ -50,6 +50,7 @@ module TypeChecker::SemanticNode
             condition, true_branch, false_branch = ast_node.to_a.map { from_ast(_1) if _1 }
 
             Conditional.new(
+                ast_node: ast_node,
                 condition: condition,
                 true_branch: true_branch,
                 false_branch: false_branch,
@@ -57,10 +58,10 @@ module TypeChecker::SemanticNode
         end
 
         register_ast_converter :case do |ast_node|
-            subject, *whens, else_case = *ast_node
+            subject, *ast_whens, else_case = *ast_node
 
             subject = from_ast(subject)
-            whens = whens.map { |w| w.to_a.map { from_ast(_1) if _1 } } # [[value, body], ...]
+            whens = ast_whens.map { |w| w.to_a.map { from_ast(_1) if _1 } } # [[value, body], ...]
             else_case = from_ast(else_case) if else_case
 
             # Convert into assignment and conditional chain
@@ -75,10 +76,16 @@ module TypeChecker::SemanticNode
             root_conditional = nil
             last_conditional = nil
 
-            whens.each do |(value, body)|
+            whens.each.with_index do |_when, i|
+                value, body = *_when
+
                 this_conditional = Conditional.new(
+                    ast_node: ast_whens[i],
+
                     # `when x` is equivalent to `x === subject`
                     condition: Send.new(
+                        ast_node: ast_whens[i],
+
                         target: value,
                         method: :===,
                         positional_arguments: [fabricated_subject_var],

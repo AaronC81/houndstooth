@@ -107,6 +107,7 @@ module TypeChecker::SemanticNode
             send.ast_node = ast_node
 
             send.block = Block.new(
+                ast_node: ast_node,
                 parameters: from_ast(args_ast_node),
                 body: from_ast(block_body)
             )
@@ -156,6 +157,7 @@ module TypeChecker::SemanticNode
             end
 
             send.block = Block.new(
+                ast_node: ast_node,
                 parameters: parameters,
                 body: from_ast(block_body)
             )

@@ -154,6 +154,9 @@ module TypeChecker::SemanticNode
                 ast_node: ast_node,
                 target: target,
                 value: Send.new(
+                    # Yeah, this is the same as the parent, but there's not really a better option
+                    ast_node: ast_node,
+
                     method: op,
                     target: target,
 
@@ -213,5 +216,8 @@ module TypeChecker::SemanticNode
     # If you encounter this during node processing, something has probably gone wrong, and you 
     # should have processed the enclosing multiple assignment earlier!
     class MagicPlaceholder < Base
+        def initialize(**kwargs)
+            super(ast_node: nil, **kwargs)
+        end
     end
 end 
