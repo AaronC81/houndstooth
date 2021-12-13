@@ -49,7 +49,7 @@ module TypeChecker::SemanticNode
             #   y
             # We shouldn't match  the `# foo` comment to the `y` Send
 
-            if ast_node.type == :send && ast_node.location.selector
+            if ast_node.type == :send && ast_node.location.respond_to?(:selector) && ast_node.location.selector
                 # Use name of the method as position reference, if available
                 reference_location = ast_node.location.selector
             else
@@ -77,3 +77,4 @@ require_relative 'semantic_node/keywords'
 require_relative 'semantic_node/literals'
 require_relative 'semantic_node/send'
 require_relative 'semantic_node/definitions'
+require_relative 'semantic_node/super'

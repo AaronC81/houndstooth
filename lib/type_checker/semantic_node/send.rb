@@ -16,6 +16,11 @@ module TypeChecker::SemanticNode
         # @return [Boolean]
         attr_accessor :safe_navigation
 
+        # If true, this isn't really a send, but instead a super call. The `target` and `method` 
+        # of this instance should be ignored.
+        # @return [Boolean]
+        attr_accessor :super_call
+
         # @return [Block, nil]
         attr_accessor :block
 
@@ -164,6 +169,31 @@ module TypeChecker::SemanticNode
 
             send
         end
+
+        # Supers are virtually identical to method calls in terms of the arguments they can take.
+        register_ast_converter :super do |ast_node|
+            # Convert this super into a fake send node
+            equivalent_send_node = Parser::AST::Node.new(
+                :send,
+                [
+                    # Target
+                    nil,
+
+                    # Method
+                    :super__NOT_A_REAL_METHOD,
+
+                    # Arguments
+                    *ast_node
+                ],
+                location: ast_node.location
+            )
+
+            # Convert that into a semantic node and set the super flag
+            send = from_ast(equivalent_send_node)
+            send.super_call = true
+
+            send
+        end 
     end
 
     # A block passed to a `Send`.
