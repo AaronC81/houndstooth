@@ -573,8 +573,8 @@ RSpec.describe 'AST to SemanticNode' do
 
     it 'translates aliases' do
         expect(code_to_semantic_node('alias x y')).to m(Alias,
-            from: m(SymbolLiteral, components: ['x']),
             from: m(SymbolLiteral, components: ['y']),
+            to: m(SymbolLiteral, components: ['x']),
         )
     end
 
