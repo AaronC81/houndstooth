@@ -57,22 +57,84 @@ class TypeChecker::Environment
     end
     
     class SelfType < Type; end
+    class VoidType < Type; end
+    class UntypedType < Type; end
 
     class Method
         # @return [String]
         attr_reader :name
 
+        # @return [<MethodType>]
+        attr_reader :signatures
+
         # :public, :protected or :private
         # @return [Symbol]
         attr_reader :visibility
 
-        def initialize(name, visibility: :public)
-            @name = name
-            @visibility = visibility
-        end
+        # @return [Boolean]
+        attr_reader :const
+        alias const? const
 
-        # TODO: list of MethodSignature objects
+        def initialize(name, signatures = nil, visibility: :public, const: false)
+            @name = name
+            @signatures = signatures || []
+            @visibility = visibility
+            @const = const
+        end
     end
+
+    class MethodType < Type
+        # @return [<PositionalParameter>]
+        attr_reader :positional_parameters
+
+        # @return [<KeywordParameter>]
+        attr_reader :keyword_parameters
+
+        # @return [PositionalParameter, nil]
+        attr_reader :rest_positional_parameter
+
+        # @return [KeywordParameter, nil]
+        attr_reader :rest_keyword_parameter
+
+        # @return [BlockParameter, nil]
+        attr_reader :block_parameter
+
+        # @return [Type]
+        attr_reader :return_type
+
+        def initialize(positional: [], keyword: [], rest_positional: nil, rest_keyword: nil, block: nil, return_type: nil)
+            super()
+
+            @positional_parameters = positional
+            @keyword_parameters = keyword
+            @rest_positional_parameter = rest_positional
+            @rest_keyword_parameter = rest_keyword
+            @block_parameter = block
+            @return_type = return_type || VoidType.new
+        end
+    end
+
+    class Parameter
+        # @return [Name]
+        attr_reader :name
+
+        # @return [Type]
+        attr_reader :type
+
+        # @return [Boolean]
+        attr_reader :optional
+        alias optional? optional
+
+        def initialize(name, type, optional: false)
+            @name = name
+            @type = type
+            @optional = optional
+        end
+    end
+
+    class PositionalParameter < Parameter; end
+    class KeywordParameter < Parameter; end
+    class BlockParameter < Parameter; end
 
     def initialize
         @types = {}
