@@ -12,3 +12,11 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
 end
+
+def m(type, **attrs)
+  if attrs.length > 0
+      be_a(type) & have_attributes(**attrs)
+  else
+      be_a(type)
+  end
+end

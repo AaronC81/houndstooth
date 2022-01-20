@@ -1,13 +1,5 @@
 include TypeChecker::SemanticNode
 
-def m(type, **attrs)
-    if attrs.length > 0
-        be_a(type) & have_attributes(**attrs)
-    else
-        be_a(type)
-    end
-end
-
 RSpec.describe 'AST to SemanticNode' do
     it 'translates literals' do
         expect(code_to_semantic_node('1')).to m(IntegerLiteral, value: 1)
