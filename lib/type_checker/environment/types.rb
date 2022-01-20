@@ -1,6 +1,15 @@
 class TypeChecker::Environment
     class Type; end
 
+    class PendingDefinedType < Type
+        def initialize(path)
+            @path = path
+        end
+
+        # @return [String]
+        attr_reader :path
+    end
+
     class DefinedType < Type
         def initialize(path: nil, definition_loc: nil, superclass: nil, instance_methods: nil, static_methods: nil, eigen: :generate)
             @path = path

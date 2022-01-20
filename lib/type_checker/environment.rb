@@ -14,3 +14,4 @@ class TypeChecker::Environment
 end
 
 require_relative 'environment/types'
+require_relative 'environment/type_parser'
