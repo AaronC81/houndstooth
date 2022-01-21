@@ -44,7 +44,12 @@ class TypeChecker::Environment
             if eigen == :generate
                 @eigen = DefinedType.new(
                     path: "<Eigen:#{path}>",
-                    superclass: superclass&.eigen,
+                    superclass:
+                        if superclass.is_a?(PendingDefinedType)
+                            PendingDefinedType.new("<Eigen:#{superclass.path}>")
+                        else 
+                            superclass&.eigen
+                        end,
                     eigen: nil,
                 )
             else

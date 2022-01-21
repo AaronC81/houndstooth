@@ -14,6 +14,7 @@ module TypeChecker::Stdlib
 
             eigen: E::DefinedType.new(
                 path: "<Eigen:BasicObject>",
+                superclass: E::PendingDefinedType.new("Class"),
                 instance_methods: [
                     # TODO: `.new` should actually be "magic", and always have the same parameters
                     # as `#initialize`
@@ -25,7 +26,7 @@ module TypeChecker::Stdlib
 
         environment.add_type E::DefinedType.new(
             path: "Object",
-            superclass: environment.types["BasicObject"],
+            superclass: E::PendingDefinedType.new("BasicObject"),
 
             instance_methods: [
                 E::Method.new(:inspect, [parse("() -> String")]),
@@ -36,7 +37,7 @@ module TypeChecker::Stdlib
 
         environment.add_type E::DefinedType.new(
             path: "Module",
-            superclass: environment.types["Object"],
+            superclass: E::PendingDefinedType.new("Object"),
 
             instance_methods: [
                 # TODO: needs arrays, which don't exist yet
@@ -46,7 +47,7 @@ module TypeChecker::Stdlib
 
         environment.add_type E::DefinedType.new(
             path: "Class",
-            superclass: environment.types["Module"],
+            superclass: E::PendingDefinedType.new("Module"),
 
             instance_methods: [
                 E::Method.new(:superclass, [parse("() -> Class")]),
@@ -57,29 +58,22 @@ module TypeChecker::Stdlib
 
         environment.add_type E::DefinedType.new(
             path: "Numeric",
-            superclass: environment.types["Object"],
+            superclass: E::PendingDefinedType.new("Object"),
         )
 
         environment.add_type E::DefinedType.new(
             path: "Integer",
-            superclass: environment.types["Numeric"],
+            superclass: E::PendingDefinedType.new("Numeric"),
         )
 
         environment.add_type E::DefinedType.new(
             path: "String",
-            superclass: environment.types["Object"],
+            superclass: E::PendingDefinedType.new("Object"),
 
             instance_methods: [
                 E::Method.new(:length, [parse("() -> Integer")]),
             ]
         )
-
-        # Yep, this is how it works...
-        # https://tiagodev.wordpress.com/2013/04/16/eigenclasses-for-lunch-the-ruby-object-model/
-        # We couldn't do this earlier because defining a class with a pending superclass doesn't
-        # work yet, it throws an error on the eigen phase
-        # TODO FIX - this will be a problem later!
-        environment.types["BasicObject"].eigen.superclass = environment.types["Class"]
 
         environment.resolve_all_pending_types
     end
