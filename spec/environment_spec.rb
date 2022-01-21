@@ -7,9 +7,7 @@ RSpec.describe TypeChecker::Environment do
     end
 
     before :each do
-        TypeChecker::Stdlib.types.each do |type|
-            subject.add_type(type)
-        end
+        TypeChecker::Stdlib.add_types(subject)
     end
 
     it 'can resolve methods' do

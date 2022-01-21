@@ -12,6 +12,11 @@ class TypeChecker::Environment
     # @return [{String, DefinedType}] 
     attr_reader :types
 
+    def resolve_all_pending_types
+        types.each do |_, type|
+            type.resolve_all_pending_types(self)
+        end
+    end
 
     # Resolve a type by path; either an absolute path from the root namespace, or optionally as a
     # relative path from the context of it being used within the given type.

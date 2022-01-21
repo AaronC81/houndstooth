@@ -3,74 +3,90 @@
 module TypeChecker::Stdlib
     # `include` doesn't work because this is a Class
     E = TypeChecker::Environment
+    MT = E::MethodType
 
-    def self.types
-        basic_obj = E::DefinedType.new(
+    def self.add_types(environment)
+        # Useful reference:
+        # https://tiagodev.wordpress.com/2013/04/16/eigenclasses-for-lunch-the-ruby-object-model/
+
+        environment.add_type E::DefinedType.new(
             path: "BasicObject",
 
             eigen: E::DefinedType.new(
                 path: "<Eigen:BasicObject>",
                 instance_methods: [
-                    E::Method.new(:new),
-                    E::Method.new(:initialize, visibility: :private),
+                    # TODO: `.new` should actually be "magic", and always have the same parameters
+                    # as `#initialize`
+                    E::Method.new(:new, [parse("() -> self")]),
+                    E::Method.new(:initialize, [parse("() -> void")], visibility: :private),
                 ]
             )
         )
-        obj = E::DefinedType.new(
+
+        environment.add_type E::DefinedType.new(
             path: "Object",
-            superclass: basic_obj,
+            superclass: environment.types["BasicObject"],
 
             instance_methods: [
-                E::Method.new(:inspect),
+                E::Method.new(:inspect, [parse("() -> String")]),
             ]
 
             # Should get its `eigen` generated automatically by `DefinedType` constructor
         )
 
-        mod = E::DefinedType.new(
+        environment.add_type E::DefinedType.new(
             path: "Module",
-            superclass: obj,
+            superclass: environment.types["Object"],
 
             instance_methods: [
-                E::Method.new(:nesting),
+                # TODO: needs arrays, which don't exist yet
+                E::Method.new(:nesting, [parse("() -> untyped")]),
             ]
         )
 
-        cls = E::DefinedType.new(
+        environment.add_type E::DefinedType.new(
             path: "Class",
-            superclass: mod,
+            superclass: environment.types["Module"],
 
             instance_methods: [
-                E::Method.new(:superclass),
+                E::Method.new(:superclass, [parse("() -> Class")]),
                 E::Method.new(:new),
                 E::Method.new(:initialize, visibility: :private),
             ]
         )
 
-        num = E::DefinedType.new(
+        environment.add_type E::DefinedType.new(
             path: "Numeric",
-            superclass: obj,
+            superclass: environment.types["Object"],
         )
 
-        int = E::DefinedType.new(
+        environment.add_type E::DefinedType.new(
             path: "Integer",
-            superclass: num,
+            superclass: environment.types["Numeric"],
         )
 
-        str = E::DefinedType.new(
+        environment.add_type E::DefinedType.new(
             path: "String",
-            superclass: obj,
+            superclass: environment.types["Object"],
 
             instance_methods: [
-                E::Method.new(:length),
+                E::Method.new(:length, [parse("() -> Integer")]),
             ]
         )
 
         # Yep, this is how it works...
         # https://tiagodev.wordpress.com/2013/04/16/eigenclasses-for-lunch-the-ruby-object-model/
-        # We couldn't do this earlier because we didn't have a class type yet!
-        basic_obj.eigen.superclass = cls
+        # We couldn't do this earlier because defining a class with a pending superclass doesn't
+        # work yet, it throws an error on the eigen phase
+        # TODO FIX - this will be a problem later!
+        environment.types["BasicObject"].eigen.superclass = environment.types["Class"]
 
-        [basic_obj, obj, mod, cls, str, num, int]
+        environment.resolve_all_pending_types
+    end
+
+    private
+    
+    def self.parse(s)
+        TypeChecker::Environment::TypeParser.parse_method_type(s)
     end
 end
