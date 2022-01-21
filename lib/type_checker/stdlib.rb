@@ -47,6 +47,16 @@ module TypeChecker::Stdlib
             ]
         )
 
+        num = E::DefinedType.new(
+            path: "Numeric",
+            superclass: obj,
+        )
+
+        int = E::DefinedType.new(
+            path: "Integer",
+            superclass: num,
+        )
+
         str = E::DefinedType.new(
             path: "String",
             superclass: obj,
@@ -61,6 +71,6 @@ module TypeChecker::Stdlib
         # We couldn't do this earlier because we didn't have a class type yet!
         basic_obj.eigen.superclass = cls
 
-        [basic_obj, obj, mod, cls, str]
+        [basic_obj, obj, mod, cls, str, num, int]
     end
 end
