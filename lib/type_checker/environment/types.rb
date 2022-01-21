@@ -14,7 +14,11 @@ class TypeChecker::Environment
                 raise "could not resolve type '#{type.path}'" if new_type.nil? # TODO better error
                 new_type
             else
-                type.resolve_all_pending_types(environment, context: context)
+                # Do not recurse into DefinedTypes, this could cause infinite loops if classes are
+                # superclasses of each other
+                if !type.is_a?(DefinedType)
+                    type&.resolve_all_pending_types(environment, context: context)
+                end
                 type
             end
         end
