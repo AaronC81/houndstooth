@@ -5,6 +5,10 @@ class TypeChecker::Environment
         # Parses an RBS type signature, e.g. "(String) -> Integer", and returns it as a `Type` in 
         # this project's type model.
         #
+        # The types used do not necessarily need to be defined - all type references in the
+        # returned signature will be instances of `PendingDefinedType`, which can be converted to
+        # `DefinedType` using `Type#resolve_all_pending_types`.
+        #
         # @param [String] input
         # @return [Type]
         def self.parse_method_type(input, method_definition_parameters: nil)

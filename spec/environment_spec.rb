@@ -1,6 +1,11 @@
 RSpec.describe TypeChecker::Environment do
     E = TypeChecker::Environment
 
+    def resolve(t)
+        t.resolve_all_pending_types(subject, context: nil)
+        t
+    end
+
     before :each do
         TypeChecker::Stdlib.types.each do |type|
             subject.add_type(type)
@@ -61,13 +66,13 @@ RSpec.describe TypeChecker::Environment do
     end
 
     it 'can parse RBS signatures into our type model' do
-        expect(E::TypeParser.parse_method_type '(String, Object) -> Integer').to m(
+        expect(resolve(E::TypeParser.parse_method_type('(String, Object) -> Integer'))).to m(
             E::MethodType,
             positional_parameters: [
-                m(E::PositionalParameter, name: nil, type: m(E::PendingDefinedType, path: "String")),
-                m(E::PositionalParameter, name: nil, type: m(E::PendingDefinedType, path: "Object")),
+                m(E::PositionalParameter, name: nil, type: m(E::DefinedType, path: "String")),
+                m(E::PositionalParameter, name: nil, type: m(E::DefinedType, path: "Object")),
             ],
-            return_type: m(E::PendingDefinedType, path: "Integer"),
+            return_type: m(E::DefinedType, path: "Integer"),
         )
 
         expect(E::TypeParser.parse_method_type '(A a, ?B b, *E e, c: C, ?d: D, **F f) -> R').to m(
@@ -85,7 +90,7 @@ RSpec.describe TypeChecker::Environment do
             return_type: m(E::PendingDefinedType, path: "R"),
         )
 
-        expect(E::TypeParser.parse_method_type '() { (Integer) -> Integer } -> void').to m(
+        expect(resolve(E::TypeParser.parse_method_type('() { (Integer) -> Integer } -> void'))).to m(
             E::MethodType,
             block_parameter: m(
                 E::BlockParameter,
@@ -93,9 +98,9 @@ RSpec.describe TypeChecker::Environment do
                 type: m(
                     E::MethodType,
                     positional_parameters: [
-                        m(E::PositionalParameter, name: nil, type: m(E::PendingDefinedType, path: "Integer")),
+                        m(E::PositionalParameter, name: nil, type: m(E::DefinedType, path: "Integer")),
                     ],
-                    return_type: m(E::PendingDefinedType, path: "Integer"),
+                    return_type: m(E::DefinedType, path: "Integer"),
                 ),
             ),
             return_type: m(E::VoidType),

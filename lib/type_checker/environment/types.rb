@@ -1,5 +1,24 @@
 class TypeChecker::Environment
-    class Type; end
+    class Type
+        def resolve_all_pending_types(environment, context: nil); end
+
+        # If the given type is an instance of `PendingDefinedType`, uses the given environment to
+        # resolve the type. If the type couldn't be resolved, throws an exception.
+        #
+        # @param [Type] type
+        # @param [Environment] environment
+        # @return [DefinedType]
+        def resolve_type_if_pending(type, context, environment)
+            if type.is_a?(PendingDefinedType)
+                new_type = environment.resolve_type(type.path, type_context: context)
+                raise "could not resolve type '#{type.path}'" if new_type.nil? # TODO better error
+                new_type
+            else
+                type.resolve_all_pending_types(environment, context: context)
+                type
+            end
+        end
+    end
 
     class PendingDefinedType < Type
         def initialize(path)
@@ -63,6 +82,15 @@ class TypeChecker::Environment
             # If there's no superclass, then there is no method to be found, so return nil
             superclass&.resolve_instance_method(method_name)
         end
+
+        def resolve_all_pending_types(environment, context: nil)
+            @superclass = resolve_type_if_pending(superclass, self, environment)
+            @eigen = resolve_type_if_pending(eigen, self, environment)
+
+            instance_methods.map do |method|
+                method.resolve_all_pending_types(environment, context: self)
+            end
+        end
     end
     
     class SelfType < Type; end
@@ -89,6 +117,12 @@ class TypeChecker::Environment
             @signatures = signatures || []
             @visibility = visibility
             @const = const
+        end
+
+        def resolve_all_pending_types(environment, context:)
+            signatures.map do |sig|
+                sig.resolve_all_pending_types(environment, context: context)
+            end
         end
     end
 
@@ -121,9 +155,27 @@ class TypeChecker::Environment
             @block_parameter = block
             @return_type = return_type || VoidType.new
         end
+
+        def resolve_all_pending_types(environment, context:)
+            @return_type = resolve_type_if_pending(return_type, context, environment)
+            
+            positional_parameters.map do |param|
+                param.resolve_all_pending_types(environment, context: context)
+            end
+            
+            keyword_parameters.map do |param|
+                param.resolve_all_pending_types(environment, context: context)
+            end
+            
+            rest_positional_parameter&.resolve_all_pending_types(environment, context: context)
+            rest_keyword_parameter&.resolve_all_pending_types(environment, context: context)
+            block_parameter&.resolve_all_pending_types(environment, context: context)
+        end
     end
 
-    class Parameter
+    class Parameter < Type
+        # Note: Parameters aren't *really* a type, but we need `resolve_type_if_pending`
+
         # @return [Name]
         attr_reader :name
 
@@ -138,6 +190,10 @@ class TypeChecker::Environment
             @name = name
             @type = type
             @optional = optional
+        end
+
+        def resolve_all_pending_types(environment, context:)
+            @type = resolve_type_if_pending(type, context, environment)
         end
     end
 
