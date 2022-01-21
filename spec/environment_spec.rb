@@ -35,6 +35,31 @@ RSpec.describe TypeChecker::Environment do
         end
     end
 
+    it 'can resolve types' do
+        subject.add_type E::DefinedType.new(path: 'A')
+        subject.add_type E::DefinedType.new(path: 'A::B')
+        subject.add_type E::DefinedType.new(path: 'A::B::A')
+        subject.add_type E::DefinedType.new(path: 'A::C')
+        subject.add_type E::DefinedType.new(path: 'A::D')
+        subject.add_type E::DefinedType.new(path: 'B')
+        subject.add_type E::DefinedType.new(path: 'B::A')
+        subject.add_type E::DefinedType.new(path: 'E')
+
+        t = subject.types
+
+        expect(subject.resolve_type('A')).to eq t['A']
+        expect(subject.resolve_type('A::B')).to eq t['A::B']
+        expect(subject.resolve_type('B::A')).to eq t['B::A']
+
+        expect(subject.resolve_type('A', type_context: t['A'])).to eq t['A']
+        expect(subject.resolve_type('E', type_context: t['A'])).to eq t['E']
+        expect(subject.resolve_type('B', type_context: t['A'])).to eq t['A::B']
+        expect(subject.resolve_type('B', type_context: t['A::B'])).to eq t['A::B']
+        expect(subject.resolve_type('A', type_context: t['A::B::A'])).to eq t['A::B::A']
+        expect(subject.resolve_type('::A', type_context: t['A::B::A'])).to eq t['A']
+        expect(subject.resolve_type('A', type_context: t['B'])).to eq t['B::A']
+    end
+
     it 'can parse RBS signatures into our type model' do
         expect(E::TypeParser.parse_method_type '(String, Object) -> Integer').to m(
             E::MethodType,
