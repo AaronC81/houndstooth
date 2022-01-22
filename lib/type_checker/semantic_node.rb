@@ -6,6 +6,7 @@ LEGACY_MODES.each do |mode|
     Parser::Builders::Default.send :"emit_#{mode}=", true
 end
 Parser::Builders::Default.emit_index = false
+Parser::Builders::Default.emit_lambda = false
 
 # Useful resource: https://docs.rs/lib-ruby-parser/3.0.12/lib_ruby_parser/index.html
 # Based on whitequark/parser so gives good idea of what node types to expect
