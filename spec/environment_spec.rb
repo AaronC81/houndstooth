@@ -104,4 +104,37 @@ RSpec.describe TypeChecker::Environment do
             return_type: m(E::VoidType),
         )
     end
+    
+    it 'can be built using the builder' do
+        include TypeChecker::SemanticNode
+        node = code_to_semantic_node("
+            module A
+                class B
+                    class C
+                    end
+                end
+
+                module D
+                    class ::E
+                    end
+                end
+
+                class F
+                    module G
+                    end
+                end
+            end
+        ")
+        E::Builder.new(node, subject).analyze
+
+        expect(subject.types.keys).to include(
+            "A",
+            "A::B",
+            "A::B::C",
+            "A::D",
+            "A::F",
+            "A::F::G",
+            "E",
+        )
+    end
 end

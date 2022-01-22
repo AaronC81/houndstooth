@@ -6,7 +6,7 @@ class TypeChecker::Environment
     def add_type(type)
         # Add the type and its entire eigen chain
         @types[type.path] = type
-        add_type(type.eigen) if type.eigen
+        add_type(type.eigen) if type.respond_to?(:eigen) && type.eigen
     end
 
     # @return [{String, DefinedType}] 
@@ -66,3 +66,4 @@ end
 
 require_relative 'environment/types'
 require_relative 'environment/type_parser'
+require_relative 'environment/builder'

@@ -35,7 +35,7 @@ class TypeChecker::Environment
 
     class DefinedType < Type
         def initialize(path: nil, definition_loc: nil, superclass: nil, instance_methods: nil, static_methods: nil, eigen: :generate)
-            @path = path
+            @path = path.to_s
             @definition_loc = definition_loc
             @superclass = superclass
             @instance_methods = instance_methods || []
