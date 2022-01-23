@@ -11,6 +11,17 @@ RSpec.configure do |config|
   end
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
+
+  config.before :each do
+    TypeChecker::Errors.reset
+  end
+
+  config.after :each do
+    if TypeChecker::Errors.errors.any?
+      errors = TypeChecker::Errors.errors.map { |e| e.format }.join("\n")
+      raise "Errors occurred during test:\n#{errors}"
+    end
+  end
 end
 
 def m(type, **attrs)
