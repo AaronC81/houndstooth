@@ -111,11 +111,23 @@ RSpec.describe TypeChecker::Environment do
             module A
                 class B
                     class C
+                        def c1
+                        end
+
+                        #: () -> String
+                        def c2
+                            'c2'
+                        end
                     end
                 end
 
                 module D
                     class ::E
+                        #: (Object) -> Object
+                        #: (String) -> String
+                        def e
+                            magic!
+                        end
                     end
                 end
 
@@ -135,6 +147,46 @@ RSpec.describe TypeChecker::Environment do
             "A::F",
             "A::F::G",
             "E",
+        )
+
+        expect(subject.types["A::B::C"].instance_methods).to include(
+            m(
+                E::Method,
+                name: :c1,
+                signatures: [],
+            ),
+            m(
+                E::Method,
+                name: :c2,
+                signatures: [m(
+                    E::MethodType,
+                    positional_parameters: [],
+                    return_type: m(E::PendingDefinedType, path: "String")
+                )],
+            )
+        )
+
+        expect(subject.types["E"].instance_methods).to include m(
+            E::Method,
+            name: :e,
+            signatures: include(
+                m(
+                    E::MethodType,
+                    positional_parameters: [m(
+                        E::PositionalParameter,
+                        type: m(E::PendingDefinedType, path: "Object"),
+                    )],
+                    return_type: m(E::PendingDefinedType, path: "Object")
+                ),
+                m(
+                    E::MethodType,
+                    positional_parameters: [m(
+                        E::PositionalParameter,
+                        type: m(E::PendingDefinedType, path: "String"),
+                    )],
+                    return_type: m(E::PendingDefinedType, path: "String")
+                ),
+            ),
         )
     end
 end

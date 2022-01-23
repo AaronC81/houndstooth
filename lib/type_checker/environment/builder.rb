@@ -63,8 +63,29 @@ class TypeChecker::Environment
 
                 analyze(node: node.body, type_context: new_type)
             
-            # TODO: MethodDefinition
+            when TypeChecker::SemanticNode::MethodDefinition
+                raise "targeted method definitions unsupported" if node.target # TODO
 
+                name = node.name
+                
+                # Look for signature comments attached to this definition - those beginning with:
+                #   #:
+                # The rest of the comment is an RBS signature attached to that method
+                signatures = node.comments
+                    .filter { |comment| comment.text.start_with?('#: ') }
+                    .map do |comment|
+                        TypeParser.parse_method_type(
+                            comment.text[3...].strip,
+                            method_definition_parameters: node.parameters
+                        ) 
+                    end
+
+                if type_context.nil? || type_context == :root
+                    # TODO method definitions should definitely be allowed at the root!
+                    raise "method definition for #{name} not allowed here"
+                end
+
+                type_context.instance_methods << Method.new(name, signatures)
             end
         end
 
