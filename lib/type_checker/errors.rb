@@ -15,7 +15,7 @@ module TypeChecker
             def format
                 # TODO: merge nearby errors
 
-                ["Error: #{message}"] \
+                (["Error: #{message}"] \
                 + tagged_ranges.flat_map do |range, hint|
                     # TODO: won't work if the error spans multiple lines
                     line_range = range.source_buffer.line_range(range.line)
@@ -28,7 +28,7 @@ module TypeChecker
                         "  #{range.line}  |  #{range.source_line}",
                         "  #{' ' * range.line.to_s.length}     #{' ' * begin_pos_on_line}#{'^' * length} #{hint}",
                     ]
-                end
+                end).join("\n")
             end
 
             def push
