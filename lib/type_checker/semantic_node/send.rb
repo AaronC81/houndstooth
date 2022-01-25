@@ -73,7 +73,15 @@ module TypeChecker::SemanticNode
                 positional_arguments = arguments[0...-1].map { from_ast(_1) }
                 keyword_arguments = arguments.last.to_a.to_h do |kwarg|
                     next [:_, nil] if kwarg.type == :kwsplat
-                    raise "Expected #{kwarg} to be a pair" unless kwarg.type == :pair
+
+                    unless kwarg.type == :pair
+                        TypeChecker::Errors::Error.new(
+                            "Expected keyword argument list to contain only pairs",
+                            [[kwarg.loc.expression, "did not parse as a pair"]]
+                        ).push
+                        next nil
+                    end
+
                     kwarg.to_a.map { from_ast(_1) }
                 end
             else

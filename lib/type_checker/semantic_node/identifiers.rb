@@ -146,7 +146,13 @@ module TypeChecker::SemanticNode
 
             # TODO: No nice way of converting between =/non-= versions of method names currently
             # Also would need same considerations as noted for ||=/&&= to support
-            raise "op-assign with Send LHS is not currently supported" if target.is_a?(Send)
+            if target.is_a?(Send)
+                TypeChecker::Errors::Error.new(
+                    "Operator-assignment with a call on the left-hand side is not yet supported",
+                    [[ast_node.loc.dot.join(ast_node.loc.operator), "calls a method"]]
+                ).push
+                next nil
+            end
 
             value = from_ast(value)
 
@@ -188,7 +194,13 @@ module TypeChecker::SemanticNode
         register_ast_converter :masgn do |ast_node|
             lhs, rhs = *ast_node
 
-            raise "unexpected left-hand-side of multiple assignment" unless lhs.type == :mlhs
+            if lhs.type != :mlhs
+                TypeChecker::Errors::Error.new(
+                    "Unexpected left-hand side of multiple assignment",
+                    [[lhs.loc.expression, "expected list of variables to assign to"]]
+                ).push
+                next nil 
+            end
 
             targets = lhs.to_a.map { |n| from_ast(n, multiple_assignment_lhs: true) }
             value = from_ast(rhs)

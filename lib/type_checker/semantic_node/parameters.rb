@@ -38,7 +38,11 @@ module TypeChecker::SemanticNode
                 when :forward_arg
                     parameters.has_forward_parameter = true
                 else
-                    raise "unsupported argument type: #{arg}"
+                    TypeChecker::Errors::Error.new(
+                        "Unsupported argument type",
+                        [[arg.loc.expression, "unsupported"]]
+                    ).push
+                    next nil
                 end
             end
 

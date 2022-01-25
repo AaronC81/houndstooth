@@ -33,12 +33,24 @@ class TypeChecker::Environment
                 end
 
             when TypeChecker::SemanticNode::ClassDefinition
-                name = constant_to_string(node.name) \
-                    or raise "definition name not a constant (#{node.name})"
+                name = constant_to_string(node.name)
+                if name.nil?
+                    TypeChecker::Errors::Error.new(
+                        "Class name is not a constant",
+                        [[node.name.ast_node.loc.expression, "not a constant"]]
+                    ).push
+                    return 
+                end
 
                 if node.superclass
-                    superclass = (constant_to_string(node.superclass) \
-                        or raise "superclass not a constant (#{node.superclass})")
+                    superclass = constant_to_string(node.superclass)
+                    if superclass.nil?
+                        TypeChecker::Errors::Error.new(
+                            "Superclass is not a constant",
+                            [[node.superclass.ast_node.loc.expression, "not a constant"]]
+                        ).push
+                        return 
+                    end
                 else
                     superclass = "Object"
                 end
@@ -52,8 +64,14 @@ class TypeChecker::Environment
                 analyze(node: node.body, type_context: new_type)
 
             when TypeChecker::SemanticNode::ModuleDefinition
-                name = constant_to_string(node.name) \
-                    or raise "definition name not a constant (#{node.name})"
+                name = constant_to_string(node.name)
+                if name.nil?
+                    TypeChecker::Errors::Error.new(
+                        "Class name is not a constant",
+                        [[node.name.ast_node.loc.expression, "not a constant"]]
+                    ).push
+                    return 
+                end
 
                 new_type = DefinedType.new(
                     path: append_type_and_rel_path(type_context, name),
@@ -64,7 +82,14 @@ class TypeChecker::Environment
                 analyze(node: node.body, type_context: new_type)
             
             when TypeChecker::SemanticNode::MethodDefinition
-                raise "targeted method definitions unsupported" if node.target # TODO
+                if node.target
+                    # TODO
+                    TypeChecker::Errors::Error.new(
+                        "Method definitions with an explicit target are not yet supported",
+                        [[node.target.ast_node.loc.expression, "unsupported"]]
+                    ).push
+                    return 
+                end
 
                 name = node.name
                 
@@ -82,7 +107,11 @@ class TypeChecker::Environment
 
                 if type_context.nil? || type_context == :root
                     # TODO method definitions should definitely be allowed at the root!
-                    raise "method definition for #{name} not allowed here"
+                    TypeChecker::Errors::Error.new(
+                        "Method definition not allowed here",
+                        [[node.ast_node.loc.keyword, "not allowed"]]
+                    ).push
+                    return
                 end
 
                 type_context.instance_methods << Method.new(name, signatures)
