@@ -1,8 +1,8 @@
 # TODO: this is *very* minimal, pinch a better one from RBS or something
 
-module TypeChecker::Stdlib
+module Houndstooth::Stdlib
     # `include` doesn't work because this is a Class
-    E = TypeChecker::Environment
+    E = Houndstooth::Environment
     MT = E::MethodType
 
     def self.add_types(environment)
@@ -81,6 +81,6 @@ module TypeChecker::Stdlib
     private
     
     def self.parse(s)
-        TypeChecker::Environment::TypeParser.parse_method_type(s)
+        Houndstooth::Environment::TypeParser.parse_method_type(s)
     end
 end

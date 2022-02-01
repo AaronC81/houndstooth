@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # The `true` keyword.
     class TrueKeyword < Base
         register_ast_converter :true do |ast_node|

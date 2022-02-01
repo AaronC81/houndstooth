@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # A set of parameters accepted by a method definition or block.
     class Parameters < Base
         register_ast_converter :args do |ast_node|
@@ -38,7 +38,7 @@ module TypeChecker::SemanticNode
                 when :forward_arg
                     parameters.has_forward_parameter = true
                 else
-                    TypeChecker::Errors::Error.new(
+                    Houndstooth::Errors::Error.new(
                         "Unsupported argument type",
                         [[arg.loc.expression, "unsupported"]]
                     ).push

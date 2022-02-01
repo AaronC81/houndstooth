@@ -1,4 +1,4 @@
-require_relative '../lib/type_checker'
+require_relative '../lib/houndstooth'
 require_relative '../lib/cli'
 
 RSpec.configure do |config|
@@ -13,12 +13,12 @@ RSpec.configure do |config|
   config.shared_context_metadata_behavior = :apply_to_host_groups
 
   config.before :each do
-    TypeChecker::Errors.reset
+    Houndstooth::Errors.reset
   end
 
   config.after :each do
-    if TypeChecker::Errors.errors.any?
-      errors = TypeChecker::Errors.errors.map { |e| e.format }.join("\n")
+    if Houndstooth::Errors.errors.any?
+      errors = Houndstooth::Errors.errors.map { |e| e.format }.join("\n")
       raise "Errors occurred during test:\n#{errors}"
     end
   end

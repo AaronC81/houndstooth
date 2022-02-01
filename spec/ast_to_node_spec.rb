@@ -1,4 +1,4 @@
-include TypeChecker::SemanticNode
+include Houndstooth::SemanticNode
 
 RSpec.describe 'AST to SemanticNode' do
     it 'translates literals' do

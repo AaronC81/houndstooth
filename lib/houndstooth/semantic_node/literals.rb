@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # An integer literal.
     class IntegerLiteral < Base
         # @return [Integer]

@@ -1,4 +1,4 @@
-class TypeChecker::Environment
+class Houndstooth::Environment
     class Type
         def resolve_all_pending_types(environment, context: nil); end
 

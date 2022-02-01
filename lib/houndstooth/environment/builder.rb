@@ -1,4 +1,4 @@
-class TypeChecker::Environment
+class Houndstooth::Environment
     # Analyses a `SemanticNode` tree and builds a set of types and definitions for an `Environment`.
     #
     # It's likely this entire class will be unnecessary when CTFE is implemented, but it's a nice
@@ -27,15 +27,15 @@ class TypeChecker::Environment
             # Even if we don't, the CTFE component presumably will
 
             case node
-            when TypeChecker::SemanticNode::Body
+            when Houndstooth::SemanticNode::Body
                 node.nodes.each do |child_node|
                     analyze(node: child_node, type_context: type_context)
                 end
 
-            when TypeChecker::SemanticNode::ClassDefinition
+            when Houndstooth::SemanticNode::ClassDefinition
                 name = constant_to_string(node.name)
                 if name.nil?
-                    TypeChecker::Errors::Error.new(
+                    Houndstooth::Errors::Error.new(
                         "Class name is not a constant",
                         [[node.name.ast_node.loc.expression, "not a constant"]]
                     ).push
@@ -45,7 +45,7 @@ class TypeChecker::Environment
                 if node.superclass
                     superclass = constant_to_string(node.superclass)
                     if superclass.nil?
-                        TypeChecker::Errors::Error.new(
+                        Houndstooth::Errors::Error.new(
                             "Superclass is not a constant",
                             [[node.superclass.ast_node.loc.expression, "not a constant"]]
                         ).push
@@ -63,10 +63,10 @@ class TypeChecker::Environment
 
                 analyze(node: node.body, type_context: new_type)
 
-            when TypeChecker::SemanticNode::ModuleDefinition
+            when Houndstooth::SemanticNode::ModuleDefinition
                 name = constant_to_string(node.name)
                 if name.nil?
-                    TypeChecker::Errors::Error.new(
+                    Houndstooth::Errors::Error.new(
                         "Class name is not a constant",
                         [[node.name.ast_node.loc.expression, "not a constant"]]
                     ).push
@@ -81,10 +81,10 @@ class TypeChecker::Environment
 
                 analyze(node: node.body, type_context: new_type)
             
-            when TypeChecker::SemanticNode::MethodDefinition
+            when Houndstooth::SemanticNode::MethodDefinition
                 if node.target
                     # TODO
-                    TypeChecker::Errors::Error.new(
+                    Houndstooth::Errors::Error.new(
                         "Method definitions with an explicit target are not yet supported",
                         [[node.target.ast_node.loc.expression, "unsupported"]]
                     ).push
@@ -107,7 +107,7 @@ class TypeChecker::Environment
 
                 if type_context.nil? || type_context == :root
                     # TODO method definitions should definitely be allowed at the root!
-                    TypeChecker::Errors::Error.new(
+                    Houndstooth::Errors::Error.new(
                         "Method definition not allowed here",
                         [[node.ast_node.loc.keyword, "not allowed"]]
                     ).push
@@ -127,14 +127,14 @@ class TypeChecker::Environment
         # @return [String, nil]
         def constant_to_string(node)
             case node
-            when TypeChecker::SemanticNode::Constant
+            when Houndstooth::SemanticNode::Constant
                 if node.target.nil?
                     node.name
                 else
                     target_as_str = constant_to_string(node.target) or return nil
                     "#{target_as_str}::#{node.name}"
                 end
-            when TypeChecker::SemanticNode::ConstantBase
+            when Houndstooth::SemanticNode::ConstantBase
                 ''
             else
                 nil

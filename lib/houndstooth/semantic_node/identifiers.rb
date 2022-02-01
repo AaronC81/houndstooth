@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # A constant access, either with (`X::Y`) or without (`Y`) a leading target.
     class Constant < Base
         # @return [SemanticNode, nil]
@@ -147,7 +147,7 @@ module TypeChecker::SemanticNode
             # TODO: No nice way of converting between =/non-= versions of method names currently
             # Also would need same considerations as noted for ||=/&&= to support
             if target.is_a?(Send)
-                TypeChecker::Errors::Error.new(
+                Houndstooth::Errors::Error.new(
                     "Operator-assignment with a call on the left-hand side is not yet supported",
                     [[ast_node.loc.dot.join(ast_node.loc.operator), "calls a method"]]
                 ).push
@@ -195,7 +195,7 @@ module TypeChecker::SemanticNode
             lhs, rhs = *ast_node
 
             if lhs.type != :mlhs
-                TypeChecker::Errors::Error.new(
+                Houndstooth::Errors::Error.new(
                     "Unexpected left-hand side of multiple assignment",
                     [[lhs.loc.expression, "expected list of variables to assign to"]]
                 ).push

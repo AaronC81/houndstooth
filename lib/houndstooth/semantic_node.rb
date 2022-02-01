@@ -11,7 +11,7 @@ Parser::Builders::Default.emit_lambda = false
 # Useful resource: https://docs.rs/lib-ruby-parser/3.0.12/lib_ruby_parser/index.html
 # Based on whitequark/parser so gives good idea of what node types to expect
 
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     class Base
         # @return [Parser::AST::Node]
         attr_accessor :ast_node
@@ -32,7 +32,7 @@ module TypeChecker::SemanticNode
             converter = @@ast_converters[ast_node.type]
 
             if converter.nil?
-                TypeChecker::Errors::Error.new(
+                Houndstooth::Errors::Error.new(
                     "Unsupported AST node type #{ast_node.type}",
                     [[ast_node.loc.expression, "unsupported"]]
                 ).push

@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # An implicit super call, without parentheses. This will forward arguments to the superclass'
     # method automatically.
     class ImplicitSuper < Base

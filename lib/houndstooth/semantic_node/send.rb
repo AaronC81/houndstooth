@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # A method call, called a 'send' internally by Ruby and its parser, hence its name here.
     class Send < Base
         # @return [SemanticNode, nil]
@@ -75,7 +75,7 @@ module TypeChecker::SemanticNode
                     next [:_, nil] if kwarg.type == :kwsplat
 
                     unless kwarg.type == :pair
-                        TypeChecker::Errors::Error.new(
+                        Houndstooth::Errors::Error.new(
                             "Expected keyword argument list to contain only pairs",
                             [[kwarg.loc.expression, "did not parse as a pair"]]
                         ).push

@@ -1,4 +1,4 @@
-module TypeChecker
+module Houndstooth
     module Errors
         class Error
             def initialize(message, tagged_ranges)

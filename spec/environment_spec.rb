@@ -1,5 +1,5 @@
-RSpec.describe TypeChecker::Environment do
-    E = TypeChecker::Environment
+RSpec.describe Houndstooth::Environment do
+    E = Houndstooth::Environment
 
     def resolve(t)
         t.resolve_all_pending_types(subject, context: nil)
@@ -7,7 +7,7 @@ RSpec.describe TypeChecker::Environment do
     end
 
     before :each do
-        TypeChecker::Stdlib.add_types(subject)
+        Houndstooth::Stdlib.add_types(subject)
     end
 
     it 'can resolve methods' do
@@ -106,7 +106,7 @@ RSpec.describe TypeChecker::Environment do
     end
     
     it 'can be built using the builder' do
-        include TypeChecker::SemanticNode
+        include Houndstooth::SemanticNode
         node = code_to_semantic_node("
             module A
                 class B

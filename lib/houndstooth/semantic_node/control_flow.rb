@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # Used to group a sequence of nodes into one node - for example, when the body of a method
     # definition contains more than one statement.
     #

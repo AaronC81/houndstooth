@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # A boolean AND operation: `a && b`,
     #
     # Unlike other infix operators, boolean AND and OR are not translated to a `Send`.

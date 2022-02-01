@@ -1,4 +1,4 @@
-module TypeChecker::SemanticNode
+module Houndstooth::SemanticNode
     # A method definition. Used for both standard method definitions (`def x()`) or definitions
     # on a singleton (`def something.x()`).
     class MethodDefinition < Base

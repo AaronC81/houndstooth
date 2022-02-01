@@ -1,6 +1,6 @@
 require 'rbs'
 
-class TypeChecker::Environment
+class Houndstooth::Environment
     module TypeParser
         # Parses an RBS type signature, e.g. "(String) -> Integer", and returns it as a `Type` in 
         # this project's type model.

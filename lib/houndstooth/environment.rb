@@ -1,4 +1,4 @@
-class TypeChecker::Environment
+class Houndstooth::Environment
     def initialize
         @types = {}
     end
