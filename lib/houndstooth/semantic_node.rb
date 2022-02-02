@@ -12,6 +12,9 @@ Parser::Builders::Default.emit_lambda = false
 # Based on whitequark/parser so gives good idea of what node types to expect
 
 module Houndstooth::SemanticNode
+    # Shorthand for use by #to_instructions implementations
+    I = Houndstooth::Instructions
+
     class Base
         # @return [Parser::AST::Node]
         attr_accessor :ast_node
@@ -69,6 +72,15 @@ module Houndstooth::SemanticNode
             comments << $comments.shift \
                 while $comments.first && $comments.first.location.expression < reference_location
             comments
+        end
+
+        # Converts this semantic node into a sequence of equivalent instructions, and adds them to
+        # the given instruction block.
+        # It is expected that, after this call returns, the variable assigned by the final
+        # instruction in the block has an equivalent result to evaluating this expression. 
+        # @param [InstructionBlock] block
+        def to_instructions(block)
+            raise "#to_instructions not implemented for #{self.class.name}"
         end
     end
 

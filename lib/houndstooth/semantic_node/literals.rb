@@ -7,6 +7,10 @@ module Houndstooth::SemanticNode
         register_ast_converter :int do |ast_node|
             IntegerLiteral.new(ast_node: ast_node, value: ast_node.to_a.first)
         end
+
+        def to_instructions(block)
+            block.instructions << I::LiteralInstruction.new(node: self, value: value)
+        end
     end
 
     # A floating-point number literal.
@@ -16,6 +20,10 @@ module Houndstooth::SemanticNode
 
         register_ast_converter :float do |ast_node|
             FloatLiteral.new(ast_node: ast_node, value: ast_node.to_a.first)
+        end
+
+        def to_instructions(block)
+            block.instructions << I::LiteralInstruction.new(node: self, value: value)
         end
     end
 
@@ -39,6 +47,43 @@ module Houndstooth::SemanticNode
 
             StringLiteral.new(ast_node: ast_node, components: components)
         end
+
+        def to_instructions(block)
+            # There are a few different ways to compile this, depending on what the string's made
+            # up of...
+            if components.all? { |c| c.is_a?(String) }
+                # All literals
+                value = components.join
+                block.instructions << I::LiteralInstruction.new(node: self, value: value)
+            else
+                # We need to actually generate instructions to concatenate the strings at runtime
+                # First evaluate each part of the string into a variable
+                string_part_variables = components.map do |c|
+                    if c.is_a?(String)
+                        block.instructions << I::LiteralInstruction.new(node: self, value: c)
+                    else
+                        c.to_instructions(block)
+                        block.instructions << I::ToStringInstruction.new(
+                            node: c,
+                            target: block.instructions.last.result,
+                        )
+                    end
+                    block.instructions.last.result
+                end
+
+                # Now generate code to concatenate these variables together
+                previous_variable = string_part_variables.first
+                string_part_variables[1..].each do |variable|
+                    block.instructions << I::SendInstruction.new(
+                        node: self,
+                        target: previous_variable,
+                        method_name: :+,
+                        positional_arguments: [variable],
+                    )
+                    previous_variable = block.instructions.last.result
+                end
+            end
+        end
     end
 
     # A symbol literal, possibly with interpolated components.
@@ -61,6 +106,25 @@ module Houndstooth::SemanticNode
 
             SymbolLiteral.new(ast_node: ast_node, components: components)
         end
+
+        def to_instructions(block)
+            # This logic is identical to translating a string literal - if it's all symbols we'll do
+            # it directly, otherwise we'll pretend we're a string and hand it off
+            if components.all? { |c| c.is_a?(String) }
+                # All literals
+                value = components.join
+                block.instructions << I::LiteralInstruction.new(node: self, value: value.to_sym)
+            else
+                # Pretend we're a string, and convert to a symbol with a call at the end
+                # Not 100% equivalent in terms of allocations, but Good Enough
+                StringLiteral.new(ast_node: ast_node, components: components).to_instructions(block)
+                block.instructions << I::SendInstruction.new(
+                    node: self,
+                    target: block.instructions.last.result,
+                    method_name: :to_sym,
+                )
+            end
+        end 
     end
 
     # An array literal.
