@@ -2,6 +2,7 @@ module Houndstooth::Checker
     module Preparation
         # Walks an instruction tree and assigns types to literal instructions. Assumes that the
         # stdlib has been loaded into the given environment.
+        # Except in the case of internal errors, this won't introduce any type errors.
         # @param [Environment] env
         # @param [InstructionBlock] block
         def self.populate_literal_types(env, block)
