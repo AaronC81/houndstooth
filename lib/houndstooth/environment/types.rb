@@ -22,6 +22,13 @@ class Houndstooth::Environment
                 type
             end
         end
+
+        # Returns an RBS representation of this type. Subclasses should override this.
+        # This will not have the same formatting as the input string this is parsed from.
+        # TODO: implement for method types
+        def rbs
+            "???"
+        end 
     end
 
     class PendingDefinedType < Type
@@ -31,6 +38,10 @@ class Houndstooth::Environment
 
         # @return [String]
         attr_reader :path
+
+        def rbs
+            path
+        end 
     end
 
     class DefinedType < Type
@@ -100,11 +111,29 @@ class Houndstooth::Environment
                 method.resolve_all_pending_types(environment, context: self)
             end
         end
+
+        def rbs
+            path
+        end
     end
     
-    class SelfType < Type; end
-    class VoidType < Type; end
-    class UntypedType < Type; end
+    class SelfType < Type
+        def rbs
+            "self"
+        end
+    end
+
+    class VoidType < Type
+        def rbs
+            "void"
+        end
+    end
+
+    class UntypedType < Type
+        def rbs
+            "untyped"
+        end
+    end
 
     class Method
         # @return [String]
