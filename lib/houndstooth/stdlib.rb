@@ -67,6 +67,11 @@ module Houndstooth::Stdlib
         )
 
         environment.add_type E::DefinedType.new(
+            path: "Float",
+            superclass: E::PendingDefinedType.new("Numeric"),
+        )
+
+        environment.add_type E::DefinedType.new(
             path: "String",
             superclass: E::PendingDefinedType.new("Object"),
 
@@ -74,6 +79,33 @@ module Houndstooth::Stdlib
                 E::Method.new(:length, [parse("() -> Integer")]),
             ]
         )
+
+        environment.add_type E::DefinedType.new(
+            path: "Symbol",
+            superclass: E::PendingDefinedType.new("Object"),
+        )
+
+        # This type doesn't actually exist, but we need some kind of boolean type, so let's just
+        # invent one!
+        environment.add_type E::DefinedType.new(
+            path: "Boolean",
+            superclass: E::PendingDefinedType.new("Object"),
+        )
+
+        environment.add_type E::DefinedType.new(
+            path: "TrueClass",
+            superclass: E::PendingDefinedType.new("Boolean"),
+        )
+        environment.add_type E::DefinedType.new(
+            path: "FalseClass",
+            superclass: E::PendingDefinedType.new("Boolean"),
+        )
+
+        environment.add_type E::DefinedType.new(
+            path: "NilClass",
+            superclass: E::PendingDefinedType.new("Object"),
+        )
+
 
         environment.resolve_all_pending_types
     end
