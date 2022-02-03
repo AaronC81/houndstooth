@@ -78,6 +78,16 @@ module Houndstooth
                 @node = node
                 @result = Variable.new
             end
+            
+            def to_assembly
+                "#{result.to_assembly} = ?????"
+            end
+
+            protected
+
+            def assembly_indent(str)
+                str.split("\n").map { |line| "  #{line}" }.join("\n")
+            end
         end
 
         # An instruction which assigns a literal value.
@@ -114,22 +124,34 @@ module Houndstooth
             attr_accessor :positional_arguments
 
             # The keyword arguments to pass with the call.
-            # @return [<(String, Variable)>]
+            # @return [{String => Variable}]
             attr_accessor :keyword_arguments
 
-            def initialize(node:, target:, method_name:, positional_arguments: nil, keyword_arguments: nil)
+            # If true, this isn't really a send, but instead a super call. The `target` and
+            # `method_name` of this instance should be ignored.
+            # It'll probably be possible to resolve this later, and make it a standard method call,
+            # since we'll statically know the superclass.
+            # @return [Boolean]
+            attr_accessor :super_call
+
+            def initialize(node:, target:, method_name:, positional_arguments: nil, keyword_arguments: nil, super_call: false)
                 super(node: node)
                 @target = target
                 @method_name = method_name
                 @positional_arguments = positional_arguments || []
-                @keyword_arguments = keyword_arguments || []
+                @keyword_arguments = keyword_arguments || {}
+                @super_call = super_call
             end
 
             def to_assembly
                 pa = positional_arguments.map { |a| a.to_assembly }.join(", ")
                 ka = keyword_arguments.map { |n, a| "#{n}: #{a.to_assembly}" }.join(", ")
 
-                "#{result.to_assembly} = send #{target.to_assembly} #{method_name} " +
+                if super_call
+                    "#{result.to_assembly} = send_super "
+                else
+                    "#{result.to_assembly} = send #{target.to_assembly} #{method_name} "
+                end +
                     (ka != "" ? "(#{pa} | #{ka})" : "(#{pa})")
             end
         end
@@ -161,6 +183,36 @@ module Houndstooth
 
             def to_assembly
                 "#{result.to_assembly} = to_string #{target.to_assembly}"
+            end
+        end
+
+        # Execute one of two blocks for a final result, based on a condition.
+        class ConditionalInstruction < Instruction
+            # The condition to evaluate.
+            # @return [Variable]
+            attr_accessor :condition
+
+            # The block to execute if true.
+            # @return [InstructionBlock]
+            attr_accessor :true_branch
+
+            # The block to execute if false.
+            # @return [InstructionBlock]
+            attr_accessor :false_branch
+
+            def initialize(node:, condition:, true_branch:, false_branch:)
+                super(node: node)
+                @condition = condition
+                @true_branch = true_branch
+                @false_branch = false_branch
+            end
+
+            def to_assembly
+                "#{result.to_assembly} = if #{condition.to_assembly}\n" \
+                    "#{assembly_indent(true_branch.to_assembly)}\n" \
+                    "else\n" \
+                    "#{assembly_indent(false_branch.to_assembly)}\n" \
+                    "end"
             end
         end
     end

@@ -202,6 +202,85 @@ module Houndstooth::SemanticNode
 
             send
         end 
+
+        def to_instructions(block)
+            # Generate instructions for the method's target
+            # If it doesn't have one, then it's implicitly `self`
+            if target
+                target.to_instructions(block)
+            else
+                block.instructions << I::SelfInstruction.new(node: self)
+            end
+            target_variable = block.instructions.last.result
+
+            # If this call uses save navigation, we want to wrap everything else in a conditional
+            # which checks the target isn't nil
+            # (If safe navigation bails from a call because the target is nil, the arguments don't
+            #  get evaluated either)
+            if safe_navigation
+                # Generates:
+                #   $1 = ...target...
+                #   if $2.nil?
+                #     nil
+                #   else
+                #     $1.method
+                #   end
+                block.instructions << I::SendInstruction.new(
+                    node: self,
+                    target: target_variable,
+                    method_name: :nil?,
+                )
+                block.instructions << I::ConditionalInstruction.new(
+                    node: self,
+                    condition: block.instructions.last.result,
+                    true_branch: I::InstructionBlock.new(
+                        instructions: [
+                            I::LiteralInstruction.new(node: self, value: nil),
+                        ],
+                        has_scope: false,
+                        parent: block,
+                    ),
+                    false_branch: I::InstructionBlock.new(has_scope: false, parent: block),
+                )
+
+                # Replace the working instruction block with the false branch, so we insert the
+                # actual send in there
+                block = block.instructions.last.false_branch
+            end
+
+            # Evaluate positional arguments
+            pos_arg_variables = positional_arguments.map do |arg|
+                arg.to_instructions(block)
+                block.instructions.last.result
+            end
+            
+            # Evaluate keyword arguments - only symbol keys are supported
+            kw_arg_variables = keyword_arguments.map do |key_node, arg|
+                if key_node.is_a?(SymbolLiteral) && key_node.components.length == 1 && key_node.components.first.is_a?(String)
+                    arg.to_instructions(block)
+                    [key_node.components.first, block.instructions.last.result]
+                else
+                    Houndstooth::Errors::Error.new(
+                        "Keyword argument keys must be non-interpolated symbol literals",
+                        [[key_node.ast_node.loc.expression, "invalid key"]]
+                    ).push
+
+                    block.instructions << I::LiteralInstruction.new(node: key_node, value: nil)
+                    ["__non_symbol_key_error_#{(rand * 10000).to_i}", block.instructions.last.result]
+                end
+            end.to_h
+
+            # Insert send instruction
+            # TODO: block passed to method is ignored
+            block.instructions << I::SendInstruction.new(
+                node: self,
+                target: target_variable,
+                method_name: method,
+                positional_arguments: pos_arg_variables,
+                keyword_arguments: kw_arg_variables,
+                super_call: super_call,
+            )
+        end
     end
 
     # A block passed to a `Send`.
