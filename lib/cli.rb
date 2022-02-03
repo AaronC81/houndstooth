@@ -10,10 +10,15 @@ def code_to_semantic_node(code)
 end
 
 if __FILE__ == $0
+    env = Houndstooth::Environment.new
+    Houndstooth::Stdlib.add_types(env)
+
     if ARGV[0] == "--assembly"
         node = code_to_semantic_node(ARGV[1])
         block = Houndstooth::Instructions::InstructionBlock.new(has_scope: true, parent: nil)
         node.to_instructions(block)
+
+        Houndstooth::Checker::Preparation.populate_literal_types(env, block)
 
         if Houndstooth::Errors.errors.any?
             Houndstooth::Errors.errors.each do |error|
@@ -25,8 +30,6 @@ if __FILE__ == $0
         end
     else
         node = code_to_semantic_node(File.read(ARGV[0]))
-        env = Houndstooth::Environment.new
-        Houndstooth::Stdlib.add_types(env)
         Houndstooth::Environment::Builder.new(node, env).analyze
 
         if Houndstooth::Errors.errors.any?

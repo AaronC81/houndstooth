@@ -18,6 +18,11 @@ module Houndstooth
             # @return [String, nil]
             attr_accessor :ruby_identifier
 
+            # The type of this variable. This will start as `nil` before resolution, and then be
+            # resolved later.
+            # @return [Type, nil]
+            attr_accessor :type
+
             # Create a new variable with a unique ID, optionally with a Ruby identifier.
             def initialize(ruby_identifier=nil)
                 @@next_id ||= 1
@@ -28,11 +33,9 @@ module Houndstooth
             end
 
             def to_assembly
-                if ruby_identifier
-                    "$#{id}<#{ruby_identifier}>"
-                else
-                    "$#{id}"
-                end
+                "$#{id}" +
+                    (ruby_identifier ? "(#{ruby_identifier})" : "") +
+                    (type ? "<#{type.rbs}>" : "")
             end
         end
 
@@ -61,6 +64,13 @@ module Houndstooth
             def to_assembly
                 instructions.map { |ins| ins.to_assembly }.join("\n")
             end
+
+            def walk(&blk)
+                blk.(self)
+                instructions.each do |instruction|
+                    instruction.walk(&blk)
+                end
+            end
         end 
 
         # A minimal instruction in a sequence, translated from Ruby code.
@@ -81,6 +91,10 @@ module Houndstooth
             
             def to_assembly
                 "#{result.to_assembly} = ?????"
+            end
+
+            def walk(&blk)
+                blk.(self)
             end
 
             protected
@@ -213,6 +227,12 @@ module Houndstooth
                     "else\n" \
                     "#{assembly_indent(false_branch.to_assembly)}\n" \
                     "end"
+            end
+
+            def walk(&blk)
+                super
+                true_branch.walk(&blk)
+                false_branch.walk(&blk)
             end
         end
     end
