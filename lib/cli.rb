@@ -10,19 +10,34 @@ def code_to_semantic_node(code)
 end
 
 if __FILE__ == $0
-    node = code_to_semantic_node(File.read(ARGV[0]))
-    env = Houndstooth::Environment.new
-    Houndstooth::Stdlib.add_types(env)
-    Houndstooth::Environment::Builder.new(node, env).analyze
+    if ARGV[0] == "--assembly"
+        node = code_to_semantic_node(ARGV[1])
+        block = Houndstooth::Instructions::InstructionBlock.new(has_scope: true, parent: nil)
+        node.to_instructions(block)
 
-    if Houndstooth::Errors.errors.any?
-        Houndstooth::Errors.errors.each do |error|
-            puts error.format
-            puts
+        if Houndstooth::Errors.errors.any?
+            Houndstooth::Errors.errors.each do |error|
+                puts error.format
+                puts
+            end
+        else
+            puts block.to_assembly
         end
     else
-        puts "All done!"
-        puts "Types:"
-        puts env.types.keys.map { |name| "  - #{name}"}
+        node = code_to_semantic_node(File.read(ARGV[0]))
+        env = Houndstooth::Environment.new
+        Houndstooth::Stdlib.add_types(env)
+        Houndstooth::Environment::Builder.new(node, env).analyze
+
+        if Houndstooth::Errors.errors.any?
+            Houndstooth::Errors.errors.each do |error|
+                puts error.format
+                puts
+            end
+        else
+            puts "All done!"
+            puts "Types:"
+            puts env.types.keys.map { |name| "  - #{name}"}
+        end
     end
 end
