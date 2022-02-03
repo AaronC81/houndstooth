@@ -122,7 +122,7 @@ module Houndstooth::SemanticNode
             send.block = Block.new(
                 ast_node: ast_node,
                 parameters: from_ast(args_ast_node),
-                body: from_ast(block_body)
+                body: block_body.nil? ? Body.new(ast_node: ast_node) : from_ast(block_body)
             )
 
             send
