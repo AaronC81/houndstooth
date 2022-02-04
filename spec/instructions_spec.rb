@@ -192,6 +192,16 @@ RSpec.describe Houndstooth::Instructions do
         ]
     end 
 
+    it 'can be created for local variables' do
+        ins = code_to_block("a = 3; puts a").instructions
+        expect(ins).to match_array [
+            m(I::LiteralInstruction, value: 3, result: m(I::Variable, ruby_identifier: "a")),
+            m(I::SelfInstruction),
+            m(I::IdentityInstruction, result: ins[0].result),
+            m(I::SendInstruction, method_name: :puts, positional_arguments: [ins[0].result]),
+        ]
+    end
+
     context 'can resolve types by traversing through instructions' do
         # TODO: When implemented, make these test cases use actual Ruby code with local variables
 

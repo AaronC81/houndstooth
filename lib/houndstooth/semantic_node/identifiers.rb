@@ -85,6 +85,15 @@ module Houndstooth::SemanticNode
             name = "___fabricated_#{@@fabricate_counter}"
             LocalVariable.new(ast_node: nil, name: name, fabricated: true)
         end
+
+        def to_instructions(block)
+            variable = block.resolve_local_variable(name.to_s, create: false)
+            block.instructions << I::IdentityInstruction.new(
+                block: block,
+                node: self,
+                variable: variable,
+            )
+        end
     end
 
     # Represents an instance variable.
@@ -169,6 +178,21 @@ module Houndstooth::SemanticNode
                     positional_arguments: [value]
                 )
             )
+        end
+
+        def to_instructions(block)
+            if !target.is_a?(LocalVariable)
+                Houndstooth::Errors::Error.new(
+                    "Only local variables are currently supported",
+                    [[target.ast_node.loc.name, "unsupported kind of variable"]]
+                ).push
+
+                block.instructions << I::LiteralInstruction.new(block: block, node: self, value: nil)
+                return
+            end
+
+            value.to_instructions(block)
+            block.instructions.last.result = block.resolve_local_variable(target.name.to_s, create: true)
         end
     end
 

@@ -96,6 +96,38 @@ module Houndstooth
                 # Check the parent if we have one
                 parent&.block&.variable_type_at(var, parent, strictly_before: true)
             end
+
+            # Returns the `Variable` instance for a named Ruby local variable, by its identifier.
+            # If the variable isn't present in this scope, it will look up scopes until it is found.
+            # If `create` is set, the variable will be created in the closest scope if it doesn't
+            # exist.
+            # If the variable couldn't be found (and `create` is not set), throws an exception,
+            # since this represents a mismatch in Ruby's state and our state.
+            #
+            # @param [String] name
+            # @param [Boolean] create
+            # @param [InstructionBlock, nil] highest_scope
+            # @return 
+            def resolve_local_variable(name, create:, highest_scope: nil)
+                if !scope.nil?
+                    highest_scope = self if highest_scope.nil? 
+
+                    var = scope.find { |v| v.ruby_identifier == name }
+                    return var if !var.nil?
+                end
+
+                if !parent.nil?
+                    parent.block.resolve_local_variable(name, create: create, highest_scope: highest_scope)
+                else
+                    # Variable doesn't exist, create in highest scope
+                    if create
+                        new_var = Variable.new(name)
+                        highest_scope.scope << new_var
+                        new_var
+                    else
+                        raise "local variable #{name} doesn't exist in any block scope"
+                    end
+                end
             end
 
             def to_assembly
@@ -132,10 +164,10 @@ module Houndstooth
             # @return [Type, nil]
             attr_accessor :type_change
             
-            def initialize(block:, node:, type_change: nil)
+            def initialize(block:, node:, type_change: nil, generate_result: true)
                 @block = block
                 @node = node
-                @result = Variable.new
+                @result = generate_result ? Variable.new : nil
                 @type_change = type_change
             end
             
@@ -157,6 +189,21 @@ module Houndstooth
                 str.split("\n").map { |line| "  #{line}" }.join("\n")
             end
         end
+
+        # An instruction which simply does nothing. This can be used when an instruction needs to
+        # be generated but doesn't actually need to happen, such as when a local variable is used.
+        class IdentityInstruction < Instruction            
+            def initialize(block:, node:, variable:)
+                super(block: block, node: node, generate_result: false)
+                @result = variable
+            end
+
+            alias variable result
+
+            def to_assembly
+                "#{super}identity"
+            end
+        end        
 
         # An instruction which assigns a literal value.
         class LiteralInstruction < Instruction
