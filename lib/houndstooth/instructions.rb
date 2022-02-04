@@ -58,7 +58,7 @@ module Houndstooth
             # index. If the type is not known, returns nil.
             # @param [Variable] var
             # @param [Instruction, Integer] ins
-            def variable_type_at(var, ins)
+            def variable_type_at(var, ins, strictly_before: false)
                 index = 
                     if ins.is_a?(Integer)
                         ins
@@ -66,18 +66,36 @@ module Houndstooth
                         instructions.index { |i| i.equal? ins } or raise 'invalid instruction ref'
                     end
 
+                index -= 1 if strictly_before
+
                 # Look for an instruction with a typechange for this variable
                 until index < 0
+                    # Is this a relevant typechange for this variable?
                     if instructions[index].result == var && !instructions[index].type_change.nil?
                         # We found a typechange! Return it
                         return instructions[index].type_change
                     end
+
+                    # If the instruction is a conditional...
+                    if instructions[index].is_a?(I::ConditionalInstruction)
+                        # Find types for this variable in both branches, starting from the end
+                        tbi = instructions[index].true_branch.instructions.last
+                        fbi = instructions[index].false_branch.instructions.last
+
+                        true_t = instructions[index].true_branch.variable_type_at(var, tbi)
+                        false_t = instructions[index].false_branch.variable_type_at(var, fbi)
+
+                        # The type is a union of both sides
+                        return Houndstooth::Environment::UnionType.new([true_t, false_t]).simplify
+                    end
+
+                    # Move onto the previous instruction
                     index -= 1
                 end
                 
                 # Check the parent if we have one
-                puts "Parent nil? #{parent.nil?}"
-                parent&.block&.variable_type_at(var, parent)
+                parent&.block&.variable_type_at(var, parent, strictly_before: true)
+            end
             end
 
             def to_assembly

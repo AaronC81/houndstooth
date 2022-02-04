@@ -253,7 +253,13 @@ RSpec.describe Houndstooth::Instructions do
                 fb.variable_type_at(block.instructions[0].result, fb.instructions[0])
             ).to eq env.resolve_type("Integer")
 
-            # TODO: and at the end, should be String | Integer
+            # After the conditional, should be String | Integer
+            expect(
+                block.variable_type_at(block.instructions[0].result, block.instructions[4])
+            ).to m(Houndstooth::Environment::UnionType, types: [
+                env.resolve_type("String"),
+                env.resolve_type("Integer"),
+            ])
         end
     end
 end
