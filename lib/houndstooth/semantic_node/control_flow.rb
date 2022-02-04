@@ -125,23 +125,26 @@ module Houndstooth::SemanticNode
 
         def to_instructions(block)
             condition.to_instructions(block)
-            block.instructions << I::ConditionalInstruction.new(
+            ci = I::ConditionalInstruction.new(
                 block: block,
                 node: self,
                 condition: block.instructions.last.result,
-                true_branch:
-                    I::InstructionBlock.new(has_scope: false, parent: block).tap do |blk|
-                        true_branch.to_instructions(blk)
-                    end,
-                false_branch:
-                    I::InstructionBlock.new(has_scope: false, parent: block).tap do |blk|
-                        if false_branch.nil?
-                            blk.instructions << I::LiteralInstruction.new(block: blk, node: self, value: nil)
-                        else
-                            false_branch.to_instructions(blk)
-                        end
-                    end,
+                true_branch: nil,
+                false_branch: nil,
             )
+            ci.true_branch =
+                I::InstructionBlock.new(has_scope: false, parent: ci).tap do |blk|
+                    true_branch.to_instructions(blk)
+                end
+            ci.false_branch =
+                I::InstructionBlock.new(has_scope: false, parent: ci).tap do |blk|
+                    if false_branch.nil?
+                        blk.instructions << I::LiteralInstruction.new(block: blk, node: self, value: nil)
+                    else
+                        false_branch.to_instructions(blk)
+                    end
+                end
+            block.instructions << ci
         end
     end
 

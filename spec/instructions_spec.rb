@@ -192,34 +192,68 @@ RSpec.describe Houndstooth::Instructions do
         ]
     end 
 
-    it 'can resolve types by traversing through instructions' do
-        env = Houndstooth::Environment.new
-        Houndstooth::Stdlib.add_types(env)
+    context 'can resolve types by traversing through instructions' do
+        # TODO: When implemented, make these test cases use actual Ruby code with local variables
 
-        # One instruction, which has a typechange
-        block = I::InstructionBlock.new(parent: nil, has_scope: false)
-        block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: 3)
-        block.instructions.last.type_change = env.resolve_type("Integer")
-        expect(
-            block.variable_type_at(block.instructions.last.result, block.instructions.last)
-        ).to eq env.resolve_type("Integer")
+        it 'in simple sequential cases' do
+            env = Houndstooth::Environment.new
+            Houndstooth::Stdlib.add_types(env)
 
-        # Add a second assignment to the same variable, also with a typechange
-        block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: "foo")
-        block.instructions.last.result = block.instructions[0].result
-        block.instructions.last.type_change = env.resolve_type("String")
-        expect(
-            block.variable_type_at(block.instructions[0].result, block.instructions.last)
-        ).to eq env.resolve_type("String")
-        expect(
-            block.variable_type_at(block.instructions[0].result, block.instructions[0])
-        ).to eq env.resolve_type("Integer")
+            # One instruction, which has a typechange
+            block = I::InstructionBlock.new(parent: nil, has_scope: false)
+            block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: 3)
+            block.instructions.last.type_change = env.resolve_type("Integer")
+            expect(
+                block.variable_type_at(block.instructions.last.result, block.instructions.last)
+            ).to eq env.resolve_type("Integer")
 
-        # Assignment to a new variable
-        block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: true)
-        block.instructions.last.type_change = env.resolve_type("TrueClass")
-        expect(
-            block.variable_type_at(block.instructions[0].result, block.instructions.last)
-        ).to eq env.resolve_type("String")
+            # Add a second assignment to the same variable, also with a typechange
+            block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: "foo")
+            block.instructions.last.result = block.instructions[0].result
+            block.instructions.last.type_change = env.resolve_type("String")
+            expect(
+                block.variable_type_at(block.instructions[0].result, block.instructions.last)
+            ).to eq env.resolve_type("String")
+            expect(
+                block.variable_type_at(block.instructions[0].result, block.instructions[0])
+            ).to eq env.resolve_type("Integer")
+
+            # Assignment to a new variable
+            block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: true)
+            block.instructions.last.type_change = env.resolve_type("TrueClass")
+            expect(
+                block.variable_type_at(block.instructions[0].result, block.instructions.last)
+            ).to eq env.resolve_type("String")
+        end
+
+        it 'in conditionals' do
+            env = Houndstooth::Environment.new
+            Houndstooth::Stdlib.add_types(env)
+
+            # Set the same variable to 3, then 'foo'
+            block = code_to_block("3; if a; 'foo'; end; puts")
+            block.instructions[3].true_branch.instructions[0].result = block.instructions[0].result
+
+            # Set up typechanges
+            block.instructions[0].type_change = env.resolve_type("Integer")
+            block.instructions[3].true_branch.instructions[0].type_change = env.resolve_type("String")
+
+            # Should be Integer at the start, String in true branch, and Integer in false branch
+            expect(
+                block.variable_type_at(block.instructions[0].result, block.instructions[0])
+            ).to eq env.resolve_type("Integer")
+
+            tb = block.instructions[3].true_branch
+            expect(
+                tb.variable_type_at(block.instructions[0].result, tb.instructions[0])
+            ).to eq env.resolve_type("String")
+
+            fb = block.instructions[3].false_branch
+            expect(
+                fb.variable_type_at(block.instructions[0].result, fb.instructions[0])
+            ).to eq env.resolve_type("Integer")
+
+            # TODO: and at the end, should be String | Integer
+        end
     end
 end

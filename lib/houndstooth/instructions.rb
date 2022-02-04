@@ -44,8 +44,8 @@ module Houndstooth
             # @return [<Variable>, nil]
             attr_reader :scope
 
-            # The parent of this block.
-            # @return [InstructionBlock, nil]
+            # The instruction which this block belongs to.
+            # @return [Instruction, nil]
             attr_reader :parent
 
             def initialize(instructions: nil, has_scope:, parent:)
@@ -75,9 +75,9 @@ module Houndstooth
                     index -= 1
                 end
                 
-                # TODO look in parents - would require us to store what instruction this block is
-                # associated with in the parent
-                nil
+                # Check the parent if we have one
+                puts "Parent nil? #{parent.nil?}"
+                parent&.block&.variable_type_at(var, parent)
             end
 
             def to_assembly
