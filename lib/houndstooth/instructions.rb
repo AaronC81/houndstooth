@@ -77,7 +77,7 @@ module Houndstooth
                     end
 
                     # If the instruction is a conditional...
-                    if instructions[index].is_a?(I::ConditionalInstruction)
+                    if instructions[index].is_a?(ConditionalInstruction)
                         # Find types for this variable in both branches, starting from the end
                         tbi = instructions[index].true_branch.instructions.last
                         fbi = instructions[index].false_branch.instructions.last
