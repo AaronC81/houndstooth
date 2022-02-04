@@ -9,7 +9,7 @@ module Houndstooth::SemanticNode
         end
 
         def to_instructions(block)
-            block.instructions << I::LiteralInstruction.new(node: self, value: value)
+            block.instructions << I::LiteralInstruction.new(block: block, node: self, value: value)
         end
     end
 
@@ -23,7 +23,7 @@ module Houndstooth::SemanticNode
         end
 
         def to_instructions(block)
-            block.instructions << I::LiteralInstruction.new(node: self, value: value)
+            block.instructions << I::LiteralInstruction.new(block: block, node: self, value: value)
         end
     end
 
@@ -54,16 +54,17 @@ module Houndstooth::SemanticNode
             if components.all? { |c| c.is_a?(String) }
                 # All literals
                 value = components.join
-                block.instructions << I::LiteralInstruction.new(node: self, value: value)
+                block.instructions << I::LiteralInstruction.new(block: block, node: self, value: value)
             else
                 # We need to actually generate instructions to concatenate the strings at runtime
                 # First evaluate each part of the string into a variable
                 string_part_variables = components.map do |c|
                     if c.is_a?(String)
-                        block.instructions << I::LiteralInstruction.new(node: self, value: c)
+                        block.instructions << I::LiteralInstruction.new(block: block, node: self, value: c)
                     else
                         c.to_instructions(block)
                         block.instructions << I::ToStringInstruction.new(
+                            block: block,
                             node: c,
                             target: block.instructions.last.result,
                         )
@@ -75,6 +76,7 @@ module Houndstooth::SemanticNode
                 previous_variable = string_part_variables.first
                 string_part_variables[1..].each do |variable|
                     block.instructions << I::SendInstruction.new(
+                        block: block, 
                         node: self,
                         target: previous_variable,
                         method_name: :+,
@@ -113,12 +115,13 @@ module Houndstooth::SemanticNode
             if components.all? { |c| c.is_a?(String) }
                 # All literals
                 value = components.join
-                block.instructions << I::LiteralInstruction.new(node: self, value: value.to_sym)
+                block.instructions << I::LiteralInstruction.new(block: block, node: self, value: value.to_sym)
             else
                 # Pretend we're a string, and convert to a symbol with a call at the end
                 # Not 100% equivalent in terms of allocations, but Good Enough
                 StringLiteral.new(ast_node: ast_node, components: components).to_instructions(block)
                 block.instructions << I::SendInstruction.new(
+                    block: block,
                     node: self,
                     target: block.instructions.last.result,
                     method_name: :to_sym,

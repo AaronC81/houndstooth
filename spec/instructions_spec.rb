@@ -191,4 +191,35 @@ RSpec.describe Houndstooth::Instructions do
             )
         ]
     end 
+
+    it 'can resolve types by traversing through instructions' do
+        env = Houndstooth::Environment.new
+        Houndstooth::Stdlib.add_types(env)
+
+        # One instruction, which has a typechange
+        block = I::InstructionBlock.new(parent: nil, has_scope: false)
+        block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: 3)
+        block.instructions.last.type_change = env.resolve_type("Integer")
+        expect(
+            block.variable_type_at(block.instructions.last.result, block.instructions.last)
+        ).to eq env.resolve_type("Integer")
+
+        # Add a second assignment to the same variable, also with a typechange
+        block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: "foo")
+        block.instructions.last.result = block.instructions[0].result
+        block.instructions.last.type_change = env.resolve_type("String")
+        expect(
+            block.variable_type_at(block.instructions[0].result, block.instructions.last)
+        ).to eq env.resolve_type("String")
+        expect(
+            block.variable_type_at(block.instructions[0].result, block.instructions[0])
+        ).to eq env.resolve_type("Integer")
+
+        # Assignment to a new variable
+        block.instructions << I::LiteralInstruction.new(block: block, node: nil, value: true)
+        block.instructions.last.type_change = env.resolve_type("TrueClass")
+        expect(
+            block.variable_type_at(block.instructions[0].result, block.instructions.last)
+        ).to eq env.resolve_type("String")
+    end
 end

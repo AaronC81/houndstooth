@@ -18,11 +18,6 @@ module Houndstooth
             # @return [String, nil]
             attr_accessor :ruby_identifier
 
-            # The type of this variable. This will start as `nil` before resolution, and then be
-            # resolved later.
-            # @return [Type, nil]
-            attr_accessor :type
-
             # Create a new variable with a unique ID, optionally with a Ruby identifier.
             def initialize(ruby_identifier=nil)
                 @@next_id ||= 1
@@ -33,9 +28,7 @@ module Houndstooth
             end
 
             def to_assembly
-                "$#{id}" +
-                    (ruby_identifier ? "(#{ruby_identifier})" : "") +
-                    (type ? "<#{type.rbs}>" : "")
+                "$#{id}" + (ruby_identifier ? "(#{ruby_identifier})" : "")
             end
         end
 
@@ -61,6 +54,32 @@ module Houndstooth
                 @parent = parent
             end
 
+            # Returns the type of a variable at a particular instruction, either by reference or
+            # index. If the type is not known, returns nil.
+            # @param [Variable] var
+            # @param [Instruction, Integer] ins
+            def variable_type_at(var, ins)
+                index = 
+                    if ins.is_a?(Integer)
+                        ins
+                    else
+                        instructions.index { |i| i.equal? ins } or raise 'invalid instruction ref'
+                    end
+
+                # Look for an instruction with a typechange for this variable
+                until index < 0
+                    if instructions[index].result == var && !instructions[index].type_change.nil?
+                        # We found a typechange! Return it
+                        return instructions[index].type_change
+                    end
+                    index -= 1
+                end
+                
+                # TODO look in parents - would require us to store what instruction this block is
+                # associated with in the parent
+                nil
+            end
+
             def to_assembly
                 instructions.map { |ins| ins.to_assembly }.join("\n")
             end
@@ -76,6 +95,10 @@ module Houndstooth
         # A minimal instruction in a sequence, translated from Ruby code.
         # @abstract
         class Instruction
+            # The block which this instruction resides in.
+            # @return [InstructionBlock]
+            attr_accessor :block
+
             # The node which this instruction was derived from.
             # @return [SemanticNode]
             attr_accessor :node
@@ -84,13 +107,26 @@ module Houndstooth
             # @return [Variable]
             attr_accessor :result
 
-            def initialize(node:)
+            # If this instruction changes the type of the `result` variable, the new type.
+            # To discover the type of a variable, you can traverse previous instructions and look
+            # for the most recent type change (or, for things like conditional branches, combine
+            # the type changes on the two conditional branches).
+            # @return [Type, nil]
+            attr_accessor :type_change
+            
+            def initialize(block:, node:, type_change: nil)
+                @block = block
                 @node = node
                 @result = Variable.new
+                @type_change = type_change
             end
             
             def to_assembly
-                "#{result.to_assembly} = ?????"
+                return "#{result.to_assembly}" \
+                    + (self.type_change ? " -> #{self.type_change.rbs}" : "") \
+                    + " = " \
+                    # Print ????? if not overridden
+                    + (self.class == Instruction ? "?????" : "")
             end
 
             def walk(&blk)
@@ -110,13 +146,13 @@ module Houndstooth
             # @return [Integer, Boolean, Float, String, Symbol, nil]
             attr_accessor :value
             
-            def initialize(node:, value:)
-                super(node: node)
+            def initialize(block:, node:, value:)
+                super(block: block, node: node)
                 @value = value
             end
 
             def to_assembly
-                "#{result.to_assembly} = #{value.inspect}"
+                "#{super}#{value.inspect}"
             end
         end
 
@@ -148,8 +184,8 @@ module Houndstooth
             # @return [Boolean]
             attr_accessor :super_call
 
-            def initialize(node:, target:, method_name:, positional_arguments: nil, keyword_arguments: nil, super_call: false)
-                super(node: node)
+            def initialize(block:, node:, target:, method_name:, positional_arguments: nil, keyword_arguments: nil, super_call: false)
+                super(block: block, node: node)
                 @target = target
                 @method_name = method_name
                 @positional_arguments = positional_arguments || []
@@ -162,9 +198,9 @@ module Houndstooth
                 ka = keyword_arguments.map { |n, a| "#{n}: #{a.to_assembly}" }.join(", ")
 
                 if super_call
-                    "#{result.to_assembly} = send_super "
+                    "#{super}send_super "
                 else
-                    "#{result.to_assembly} = send #{target.to_assembly} #{method_name} "
+                    "#{super}send #{target.to_assembly} #{method_name} "
                 end +
                     (ka != "" ? "(#{pa} | #{ka})" : "(#{pa})")
             end
@@ -176,7 +212,7 @@ module Houndstooth
         # scopes work)
         class SelfInstruction < Instruction
             def to_assembly
-                "#{result.to_assembly} = self"
+                "#{super}self"
             end
         end
 
@@ -190,13 +226,13 @@ module Houndstooth
             # @return [Variable]
             attr_accessor :target
 
-            def initialize(node:, target:)
-                super(node: node)
+            def initialize(block:, node:, target:)
+                super(block: block, node: node)
                 @target = target
             end
 
             def to_assembly
-                "#{result.to_assembly} = to_string #{target.to_assembly}"
+                "#{super}to_string #{target.to_assembly}"
             end
         end
 
@@ -214,15 +250,16 @@ module Houndstooth
             # @return [InstructionBlock]
             attr_accessor :false_branch
 
-            def initialize(node:, condition:, true_branch:, false_branch:)
-                super(node: node)
+            def initialize(block:, node:, condition:, true_branch:, false_branch:)
+                super(block: block, node: node)
                 @condition = condition
                 @true_branch = true_branch
                 @false_branch = false_branch
             end
 
             def to_assembly
-                "#{result.to_assembly} = if #{condition.to_assembly}\n" \
+                super +
+                    "if #{condition.to_assembly}\n" \
                     "#{assembly_indent(true_branch.to_assembly)}\n" \
                     "else\n" \
                     "#{assembly_indent(false_branch.to_assembly)}\n" \

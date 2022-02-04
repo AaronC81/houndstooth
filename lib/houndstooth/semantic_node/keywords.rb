@@ -6,7 +6,7 @@ module Houndstooth::SemanticNode
         end
 
         def to_instructions(block)
-            block.instructions << I::LiteralInstruction.new(node: self, value: true)
+            block.instructions << I::LiteralInstruction.new(block: block, node: self, value: true)
         end
     end
 
@@ -17,7 +17,7 @@ module Houndstooth::SemanticNode
         end
 
         def to_instructions(block)
-            block.instructions << I::LiteralInstruction.new(node: self, value: false)
+            block.instructions << I::LiteralInstruction.new(block: block, node: self, value: false)
         end
     end
 
@@ -28,7 +28,7 @@ module Houndstooth::SemanticNode
         end
 
         def to_instructions(block)
-            block.instructions << I::SelfInstruction.new(node: self)
+            block.instructions << I::SelfInstruction.new(block: block, node: self)
         end
     end
 
@@ -39,7 +39,7 @@ module Houndstooth::SemanticNode
         end
 
         def to_instructions(block)
-            block.instructions << I::LiteralInstruction.new(node: self, value: nil)
+            block.instructions << I::LiteralInstruction.new(block: block, node: self, value: nil)
         end
     end
 end

@@ -8,7 +8,7 @@ module Houndstooth::Checker
         def self.populate_literal_types(env, block)
             block.walk do |ins|
                 if ins.is_a?(Houndstooth::Instructions::LiteralInstruction)
-                    ins.result.type =
+                    ins.type_change =
                         case ins.value
                         when Integer
                             env.resolve_type("Integer")

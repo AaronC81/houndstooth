@@ -209,7 +209,7 @@ module Houndstooth::SemanticNode
             if target
                 target.to_instructions(block)
             else
-                block.instructions << I::SelfInstruction.new(node: self)
+                block.instructions << I::SelfInstruction.new(block: block, node: self)
             end
             target_variable = block.instructions.last.result
 
@@ -226,20 +226,19 @@ module Houndstooth::SemanticNode
                 #     $1.method
                 #   end
                 block.instructions << I::SendInstruction.new(
+                    block: block,
                     node: self,
                     target: target_variable,
                     method_name: :nil?,
                 )
+
+                true_blk = I::InstructionBlock.new(has_scope: false, parent: block)
+                true_blk.instructions << I::LiteralInstruction.new(block: true_blk, node: self, value: nil)
                 block.instructions << I::ConditionalInstruction.new(
+                    block: block,
                     node: self,
                     condition: block.instructions.last.result,
-                    true_branch: I::InstructionBlock.new(
-                        instructions: [
-                            I::LiteralInstruction.new(node: self, value: nil),
-                        ],
-                        has_scope: false,
-                        parent: block,
-                    ),
+                    true_branch: true_blk,
                     false_branch: I::InstructionBlock.new(has_scope: false, parent: block),
                 )
 
@@ -265,7 +264,7 @@ module Houndstooth::SemanticNode
                         [[key_node.ast_node.loc.expression, "invalid key"]]
                     ).push
 
-                    block.instructions << I::LiteralInstruction.new(node: key_node, value: nil)
+                    block.instructions << I::LiteralInstruction.new(block: block, node: key_node, value: nil)
                     ["__non_symbol_key_error_#{(rand * 10000).to_i}", block.instructions.last.result]
                 end
             end.to_h
@@ -273,6 +272,7 @@ module Houndstooth::SemanticNode
             # Insert send instruction
             # TODO: block passed to method is ignored
             block.instructions << I::SendInstruction.new(
+                block: block,
                 node: self,
                 target: target_variable,
                 method_name: method,
