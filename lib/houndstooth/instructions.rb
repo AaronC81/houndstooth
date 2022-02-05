@@ -107,7 +107,7 @@ module Houndstooth
             # @param [String] name
             # @param [Boolean] create
             # @param [InstructionBlock, nil] highest_scope
-            # @return 
+            # @return [Variable]
             def resolve_local_variable(name, create:, highest_scope: nil)
                 if !scope.nil?
                     highest_scope = self if highest_scope.nil? 
