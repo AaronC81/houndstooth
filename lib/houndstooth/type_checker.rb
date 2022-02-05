@@ -19,6 +19,17 @@ module Houndstooth
             when Instructions::ConditionalInstruction
                 process_block(ins.true_branch)
                 process_block(ins.false_branch)
+                
+                # A conditional could return either of its branches
+                ins.type_change = Environment::UnionType.new([
+                    ins.true_branch.return_type!,
+                    ins.false_branch.return_type!,
+                ]).simplify
+            when Instructions::AssignExistingInstruction
+                # If the assignment is to a different variable, set a typechange
+                if ins.result != ins.variable
+                    ins.type_change = ins.block.variable_type_at!(ins.variable, ins)
+                end
             end
         end
 

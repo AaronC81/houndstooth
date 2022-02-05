@@ -58,6 +58,7 @@ module Houndstooth
             # index. If the type is not known, returns nil.
             # @param [Variable] var
             # @param [Instruction, Integer] ins
+            # @return [Type, nil]
             def variable_type_at(var, ins, strictly_before: false)
                 index = 
                     if ins.is_a?(Integer)
@@ -97,6 +98,23 @@ module Houndstooth
                 parent&.block&.variable_type_at(var, parent, strictly_before: true)
             end
 
+            # Identical to `variable_type_at`, but throws an exception on a missing type.
+            def variable_type_at!(...)
+                variable_type_at(...) or raise "assertion failed: missing type"
+            end
+
+            # Gets the return type of this block - i.e. the type of its last variable assignment.
+            # If the type is not known, returns nil.
+            # @return [Type, nil]
+            def return_type
+                variable_type_at(instructions.last.result, instructions.last)
+            end
+
+            # Identical to `return_type`, but throws an exception on a missing type.
+            def return_type!
+                return_type or raise "assertion failed: missing type"
+            end
+            
             # Returns the `Variable` instance for a named Ruby local variable, by its identifier.
             # If the variable isn't present in this scope, it will look up scopes until it is found.
             # If `create` is set, the variable will be created in the closest scope if it doesn't
