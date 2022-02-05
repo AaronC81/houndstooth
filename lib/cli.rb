@@ -18,7 +18,8 @@ if __FILE__ == $0
         block = Houndstooth::Instructions::InstructionBlock.new(has_scope: true, parent: nil)
         node.to_instructions(block)
 
-        Houndstooth::Checker::Preparation.populate_literal_types(env, block)
+        checker = Houndstooth::TypeChecker.new(env)
+        checker.process_block(block)
 
         if Houndstooth::Errors.errors.any?
             Houndstooth::Errors.errors.each do |error|
