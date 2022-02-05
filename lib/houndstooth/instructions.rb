@@ -260,7 +260,7 @@ module Houndstooth
             end
 
             def to_assembly
-                "#{super}#{value.inspect}"
+                "#{super}literal #{value.inspect}"
             end
         end
 
