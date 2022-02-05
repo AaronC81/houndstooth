@@ -197,8 +197,17 @@ RSpec.describe Houndstooth::Instructions do
         expect(ins).to match_array [
             m(I::LiteralInstruction, value: 3, result: m(I::Variable, ruby_identifier: "a")),
             m(I::SelfInstruction),
-            m(I::IdentityInstruction, result: ins[0].result),
+            m(I::AssignExistingInstruction, variable: ins[0].result, result: ins[0].result),
             m(I::SendInstruction, method_name: :puts, positional_arguments: [ins[0].result]),
+        ]
+
+        ins = code_to_block("x = 3; y = x").instructions
+        expect(ins).to match_array [
+            m(I::LiteralInstruction, value: 3, result: m(I::Variable, ruby_identifier: "x")),
+            m(I::AssignExistingInstruction,
+                variable: ins[0].result,
+                result: m(I::Variable, ruby_identifier: 'y'),
+            ),
         ]
     end
 

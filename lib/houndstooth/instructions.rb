@@ -190,18 +190,43 @@ module Houndstooth
             end
         end
 
-        # An instruction which simply does nothing. This can be used when an instruction needs to
-        # be generated but doesn't actually need to happen, such as when a local variable is used.
-        class IdentityInstruction < Instruction            
-            def initialize(block:, node:, variable:)
+        # An instruction which simply assigns the result variable to another (or the same) variable.
+        # Unlike most instructions, this will not create a new implicit variable - this is used to
+        # generate references to existing variables. For example:
+        #
+        #   x = 3
+        #   puts x
+        #
+        # The `x` argument needs to generate an instruction, so generates the following:
+        #
+        #   $1(x) = 3
+        #   $1(x) = existing $1(x)
+        #   puts $1(x)
+        #
+        # The `result` and `variable` are different properties so that the `result` can be replaced
+        # by future generations, for example:
+        #
+        #   x = 3
+        #   y = x
+        #
+        # Would become:
+        #
+        #   $1(x) = 3
+        #   $2(y) = existing $1(x)
+        #   
+        class AssignExistingInstruction < Instruction            
+            def initialize(block:, node:, result:, variable:)
                 super(block: block, node: node, generate_result: false)
-                @result = variable
+                @result = result
+                @variable = variable
             end
 
-            alias variable result
+            # The variable to assign to the result.
+            # @return [Variable]
+            attr_accessor :variable
 
             def to_assembly
-                "#{super}identity"
+                "#{super}existing #{variable.to_assembly}"
             end
         end        
 

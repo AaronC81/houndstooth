@@ -88,10 +88,11 @@ module Houndstooth::SemanticNode
 
         def to_instructions(block)
             variable = block.resolve_local_variable(name.to_s, create: false)
-            block.instructions << I::IdentityInstruction.new(
+            block.instructions << I::AssignExistingInstruction.new(
                 block: block,
                 node: self,
                 variable: variable,
+                result: variable,
             )
         end
     end
