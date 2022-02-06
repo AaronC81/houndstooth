@@ -1,5 +1,14 @@
 class Houndstooth::Environment
     class Type
+        # Looks for methods on an instance of this type.
+        # For example, you would resolve :+ on Integer, and :new on <Class:Integer>.
+        #
+        # @param [Symbol] method_name
+        # @return [Method, nil]
+        def resolve_instance_method(method_name)
+            nil
+        end
+
         def resolve_all_pending_types(environment, context: nil); end
 
         # If the given type is an instance of `PendingDefinedType`, uses the given environment to
@@ -54,7 +63,7 @@ class Houndstooth::Environment
         attr_reader :path
 
         def rbs
-            path
+            "#{path} (unresolved)"
         end 
     end
 
@@ -102,11 +111,6 @@ class Houndstooth::Environment
         # @return [<Method>]
         attr_reader :instance_methods
 
-        # Looks for methods on an instance of this type.
-        # For example, you would resolve :+ on Integer, and :new on <Class:Integer>.
-        #
-        # @param [Symbol] method_name
-        # @return [Method, nil]
         def resolve_instance_method(method_name)
             # Is it available on this type?
             instance_method = instance_methods.find { _1.name == method_name }
@@ -261,6 +265,27 @@ class Houndstooth::Environment
                 sig.resolve_all_pending_types(environment, context: context)
             end
         end
+
+        # Given a set of arguments and their types, resolves and returns the best matching signature
+        # of this method.
+        #
+        # If multiple signatures match, the "best" is chosen according to the distance rules used
+        # by `Type#accepts?` - the type with the lowest distance over all arguments is returned.
+        # If no signatures match, returns nil.
+        #
+        # @param [<(Instructions::Argument, Type)>] arguments
+        # @return [MethodType, nil]
+        def resolve_matching_signature(arguments)            
+            sigs_with_scores = signatures
+                .map { |sig| [sig, sig.accepts_arguments?(arguments)] }
+                .reject { |_, r| r == false }
+
+            if sigs_with_scores.any?
+                sigs_with_scores.min_by { |sig, score| score }[0]
+            else
+                nil
+            end
+        end
     end
 
     class MethodType < Type
@@ -309,7 +334,76 @@ class Houndstooth::Environment
             block_parameter&.resolve_all_pending_types(environment, context: context)
         end
 
-        # TODO: implement accepts? and rbs
+        # Determines whether this method can be called with the given arguments and their types.
+        # Follows the same return-value rules as `accepts?`.
+        #
+        # @param [<(Instructions::Argument, Type)>] arguments
+        # @return [Integer, Boolean]
+        def accepts_arguments?(arguments)
+            distance_total = 0
+            args_index = 0
+
+            # Check the positional parameters first
+            positional_parameters.each do |param|
+                # Is there also a positional argument in this index slot?
+                this_arg, this_type = arguments[args_index]
+                if this_arg.is_a?(Houndstooth::Instructions::PositionalArgument)
+                    # Yes, so this argument was definitely passed to this parameter
+                    # Are the types compatible?
+                    dist = param.type.accepts?(this_type)
+                    if dist
+                        # Yep! All is well. Add to total distance
+                        distance_total += dist
+                        args_index += 1
+                    else
+                        # Nope, this isn't valid. Bail
+                        return false
+                    end
+                else
+                    # No positional argument - but that's OK if this parameter is optional
+                    if !param.optional?
+                        # Missing argument not allowed
+                        return false
+                    end
+                end
+            end
+
+            # Are there any positional arguments left over?
+            while arguments[args_index] && arguments[args_index][0].is_a?(Houndstooth::Instructions::PositionalArgument)
+                this_arg, this_type = arguments[args_index]
+
+                # Is there a rest-parameter to take these?
+                if !rest_positional_parameter.nil?
+                    # Yep, but does this argument match the type of the rest positional?
+                    dist = param.type.accepts?(this_type)
+                    if dist
+                        # Correct - this is passed into the splat!
+                        distance_total += dist
+                        args_index += 1
+                    else
+                        # Not the right type for the splat, invalid
+                        return false
+                    end
+                else
+                    # No, error - too many arguments
+                    return false
+                end
+            end
+
+            # TODO: keyword arguments
+            raise "keyword argument checking not implemeneted" \
+                if arguments.find { |x, _| x.is_a?(Houndstooth::Instructions::KeywordArgument) }
+
+            distance_total
+        end
+
+        # TODO: implement accepts?
+
+        def rbs
+            params = 
+                [positional_parameters.map(&:rbs), keyword_parameters.map(&:rbs)].flatten.join(", ")
+            "(#{params}) -> #{return_type.rbs}"
+        end
     end
 
     class Parameter < Type
@@ -336,7 +430,21 @@ class Houndstooth::Environment
         end
     end
 
-    class PositionalParameter < Parameter; end
-    class KeywordParameter < Parameter; end
+    class PositionalParameter < Parameter
+        def rbs
+            if name
+                "#{optional? ? '?' : ''}#{type.rbs} #{name}"
+            else
+                "#{optional? ? '?' : ''}#{type.rbs}"
+            end
+        end
+    end
+
+    class KeywordParameter < Parameter
+        def rbs
+            "#{optional? ? '?' : ''}#{name}: #{type.rbs}"
+        end
+    end
+
     class BlockParameter < Parameter; end
 end

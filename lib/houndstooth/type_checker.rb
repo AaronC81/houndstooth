@@ -16,6 +16,7 @@ module Houndstooth
             case ins
             when Instructions::LiteralInstruction
                 assign_type_to_literal_instruction(ins)
+            
             when Instructions::ConditionalInstruction
                 process_block(ins.true_branch)
                 process_block(ins.false_branch)
@@ -25,11 +26,63 @@ module Houndstooth
                     ins.true_branch.return_type!,
                     ins.false_branch.return_type!,
                 ]).simplify
+            
             when Instructions::AssignExistingInstruction
                 # If the assignment is to a different variable, set a typechange
                 if ins.result != ins.variable
                     ins.type_change = ins.block.variable_type_at!(ins.variable, ins)
                 end
+
+            when Instructions::SendInstruction
+                # Get type of target
+                target_type = ins.block.variable_type_at!(ins.target, ins)
+
+                # Look up method on target
+                method = target_type.resolve_instance_method(ins.method_name)
+                if method.nil?
+                    Houndstooth::Errors::Error.new(
+                        "`#{target_type.rbs}` has no method named `#{ins.method_name}`",
+                        [[ins.node.ast_node.loc.expression, "no such method"]]
+                    ).push
+
+                    # Assign result to untyped so type checking can continue
+                    # TODO: create a special "abandoned" type specifically for this purpose
+                    ins.type_change = Environment::UntypedType.new
+                    
+                    return
+                end
+
+                # Get type of all arguments
+                arguments_with_types = ins.arguments.map do |arg|
+                    [arg, ins.block.variable_type_at!(arg.variable, ins)]
+                end
+
+                # Resolve the best method signature with these
+                sig = method.resolve_matching_signature(arguments_with_types)
+                if sig.nil?
+                    error_message =
+                        "`#{target_type.rbs}` method `#{ins.method_name}` has no signature matching the given arguments\n" \
+                        "Available signatures are:\n" \
+                        + method.signatures.map { |s| "  - #{s.rbs}" }.join("\n")
+
+                    Houndstooth::Errors::Error.new(
+                        error_message,
+                        # TODO: feels a bit dodgy
+                        [[ins.node.ast_node.loc.expression, "no matching signature"]] \
+                            + ins.node.arguments.zip(arguments_with_types).map do |node, (_, t)|
+                                [node.node.ast_node.loc.expression, "argument type is `#{t.rbs}`"]
+                            end
+                    ).push
+
+                    # Assign result to untyped so type checking can continue
+                    # TODO: create a special "abandoned" type specifically for this purpose
+                    ins.type_change = Environment::UntypedType.new
+                    
+                    return
+                end
+
+                # Set result variable to return type
+                ins.type_change = sig.return_type
             end
         end
 

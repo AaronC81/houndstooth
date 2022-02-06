@@ -231,4 +231,56 @@ RSpec.describe Houndstooth::Environment do
         expect(int_num_str.accepts?(num)).to eq 1
         expect(int_num_str.accepts?(obj)).to eq false
     end
+
+    it 'can resolve signatures on methods based on arguments' do
+        mt = ->s do
+            m = Houndstooth::Environment::TypeParser.parse_method_type(s)
+            m.resolve_all_pending_types(subject, context: nil)
+            m
+        end
+        t = ->s{ subject.resolve_type(s) }
+
+        foo = E::Method.new(:foo, [
+            mt.('(String, Numeric) -> Numeric'),
+            mt.('(String, Integer) -> Integer'),
+            mt.('(String) -> String'),
+        ])
+
+        # Exact signature matches
+        expect(foo.resolve_matching_signature([
+            [I::PositionalArgument.new(nil), t.('String')],
+            [I::PositionalArgument.new(nil), t.('Numeric')],
+        ])).to eq foo.signatures[0]
+
+        expect(foo.resolve_matching_signature([
+            [I::PositionalArgument.new(nil), t.('String')],
+            [I::PositionalArgument.new(nil), t.('Integer')],
+        ])).to eq foo.signatures[1]
+
+        expect(foo.resolve_matching_signature([
+            [I::PositionalArgument.new(nil), t.('String')],
+        ])).to eq foo.signatures[2]
+
+        # Variant match (Numeric accepts Float)
+        expect(foo.resolve_matching_signature([
+            [I::PositionalArgument.new(nil), t.('String')],
+            [I::PositionalArgument.new(nil), t.('Float')],
+        ])).to eq foo.signatures[0]
+
+        # Invalid, too many arguments
+        expect(foo.resolve_matching_signature([
+            [I::PositionalArgument.new(nil), t.('String')],
+            [I::PositionalArgument.new(nil), t.('Float')],
+            [I::PositionalArgument.new(nil), t.('Integer')],
+        ])).to eq nil
+
+        # Invalid, too few arguments
+        expect(foo.resolve_matching_signature([])).to eq nil
+
+        # Invalid, incorrect argument type
+        expect(foo.resolve_matching_signature([
+            [I::PositionalArgument.new(nil), t.('String')],
+            [I::PositionalArgument.new(nil), t.('Object')],
+        ])).to eq nil
+    end
 end
