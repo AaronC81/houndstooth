@@ -8,10 +8,7 @@ module Houndstooth::SemanticNode
         attr_accessor :method
 
         # @return [<SemanticNode>]
-        attr_accessor :positional_arguments
-
-        # @return [{SemanticNode => SemanticNode}]
-        attr_accessor :keyword_arguments
+        attr_accessor :arguments
 
         # @return [Boolean]
         attr_accessor :safe_navigation
@@ -25,7 +22,7 @@ module Houndstooth::SemanticNode
         attr_accessor :block
 
         register_ast_converter :send do |ast_node, multiple_assignment_lhs: false|
-            target, method, *arguments = *ast_node
+            target, method, *arguments_nodes = *ast_node
             
             # Let the target shift comments first!
             # This is because you can break onto newlines on the dots if you need to apply a comment
@@ -63,15 +60,14 @@ module Houndstooth::SemanticNode
 
                     target: target,
                     method: method,
-                    positional_arguments: [MagicPlaceholder.new],
-                    keyword_arguments: [],
+                    arguments: [PositionalArgument.new(MagicPlaceholder.new)],
                     safe_navigation: false,
                 )
             end 
 
-            if arguments.last&.type == :kwargs
-                positional_arguments = arguments[0...-1].map { from_ast(_1) }
-                keyword_arguments = arguments.last.to_a.to_h do |kwarg|
+            if arguments_nodes.last&.type == :kwargs
+                arguments = arguments_nodes[0...-1].map { PositionalArgument.new(from_ast(_1)) }
+                arguments.concat(arguments_nodes.last.to_a.map do |kwarg|
                     next [:_, nil] if kwarg.type == :kwsplat
 
                     unless kwarg.type == :pair
@@ -82,11 +78,11 @@ module Houndstooth::SemanticNode
                         next nil
                     end
 
-                    kwarg.to_a.map { from_ast(_1) }
-                end
+                    name, value = *kwarg.to_a.map { from_ast(_1) }
+                    KeywordArgument.new(value, name: name)
+                end)
             else
-                positional_arguments = arguments.map { from_ast(_1) }
-                keyword_arguments = []
+                arguments = arguments_nodes.map { PositionalArgument.new(from_ast(_1)) }
             end
 
             Send.new(
@@ -95,8 +91,7 @@ module Houndstooth::SemanticNode
 
                 target: target,
                 method: method,
-                positional_arguments: positional_arguments,
-                keyword_arguments: keyword_arguments,
+                arguments: arguments,
                 safe_navigation: false,
             )
         end
@@ -247,28 +242,36 @@ module Houndstooth::SemanticNode
                 block = block.instructions.last.false_branch
             end
 
-            # Evaluate positional arguments
-            pos_arg_variables = positional_arguments.map do |arg|
-                arg.to_instructions(block)
-                block.instructions.last.result
+            # Evaluate arguments
+            ins_args = arguments.map do |arg|
+                case arg
+                when PositionalArgument
+                    arg.node.to_instructions(block)
+                    I::PositionalArgument.new(block.instructions.last.result)
+                when KeywordArgument
+                    if arg.name.is_a?(SymbolLiteral) && arg.name.components.length == 1 && arg.name.components.first.is_a?(String)
+                        arg.node.to_instructions(block)
+                        I::KeywordArgument.new(
+                            block.instructions.last.result,
+                            name: arg.name.components.first,
+                        )
+                    else
+                        Houndstooth::Errors::Error.new(
+                            "Keyword argument keys must be non-interpolated symbol literals",
+                            [[arg.name.ast_node.loc.expression, "invalid key"]]
+                        ).push
+    
+                        block.instructions << I::LiteralInstruction.new(block: block, node: arg.name, value: nil)
+                        I::KeywordArgument.new(
+                            block.instructions.last.result,
+                            name: "__non_symbol_key_error_#{(rand * 10000).to_i}",
+                        )
+                    end
+                else
+                    raise "unknown node argument type: #{arg}"
+                end
             end
             
-            # Evaluate keyword arguments - only symbol keys are supported
-            kw_arg_variables = keyword_arguments.map do |key_node, arg|
-                if key_node.is_a?(SymbolLiteral) && key_node.components.length == 1 && key_node.components.first.is_a?(String)
-                    arg.to_instructions(block)
-                    [key_node.components.first, block.instructions.last.result]
-                else
-                    Houndstooth::Errors::Error.new(
-                        "Keyword argument keys must be non-interpolated symbol literals",
-                        [[key_node.ast_node.loc.expression, "invalid key"]]
-                    ).push
-
-                    block.instructions << I::LiteralInstruction.new(block: block, node: key_node, value: nil)
-                    ["__non_symbol_key_error_#{(rand * 10000).to_i}", block.instructions.last.result]
-                end
-            end.to_h
-
             # Insert send instruction
             # TODO: block passed to method is ignored
             block.instructions << I::SendInstruction.new(
@@ -276,8 +279,7 @@ module Houndstooth::SemanticNode
                 node: self,
                 target: target_variable,
                 method_name: method,
-                positional_arguments: pos_arg_variables,
-                keyword_arguments: kw_arg_variables,
+                arguments: ins_args,
                 super_call: super_call,
             )
         end
@@ -291,6 +293,33 @@ module Houndstooth::SemanticNode
         # @return [SemanticNode]
         attr_accessor :body
     end
+
+    # An argument to a `Send`.
+    # @abstract
+    class Argument
+        # The node for the argument's value.
+        # @return [SemanticNode]
+        attr_accessor :node
+
+        def initialize(node)
+            @node = node
+        end
+    end
+
+    # A standard, singular, positional argument.
+    class PositionalArgument < Argument; end
+
+    # A singular keyword argument.
+    class KeywordArgument < Argument
+        # The keyword.
+        # @return [SemanticNode]
+        attr_accessor :name
+
+        def initialize(node, name:)
+            super(node)
+            @name = name
+        end
+    end 
 
     # A special argument which may appear in the arguments to a `Send`, when arguments have been
     # forwarded from the enclosing method into it.

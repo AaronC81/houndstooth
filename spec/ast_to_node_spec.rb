@@ -71,43 +71,42 @@ RSpec.describe 'AST to SemanticNode' do
         expect(code_to_semantic_node('foo')).to m(Send,
             target: nil,
             method: :foo,
-            positional_arguments: [],
-            keyword_arguments: [],
+            arguments: [],
             block: nil,
         )
 
         expect(code_to_semantic_node('Math.add(1, 2, 3)')).to m(Send,
             target: m(Constant, target: nil, name: :Math),
             method: :add,
-            positional_arguments: [
-                m(IntegerLiteral, value: 1),
-                m(IntegerLiteral, value: 2),
-                m(IntegerLiteral, value: 3),
+            arguments: [
+                m(PositionalArgument, node: m(IntegerLiteral, value: 1)),
+                m(PositionalArgument, node: m(IntegerLiteral, value: 2)),
+                m(PositionalArgument, node: m(IntegerLiteral, value: 3)),
             ],
-            keyword_arguments: [],
             block: nil,
         )
 
         expect(code_to_semantic_node('Factory.new(:Person, name: "Aaron", age: 21)')).to m(Send,
             target: m(Constant, target: nil, name: :Factory),
             method: :new,
-            positional_arguments: [
-                m(SymbolLiteral, components: ['Person']),
+            arguments: [
+                m(PositionalArgument, node: m(SymbolLiteral, components: ['Person'])),
+                m(KeywordArgument,
+                    name: m(SymbolLiteral, components: ['name']),
+                    node: m(StringLiteral, components: ['Aaron']),
+                ),
+                m(KeywordArgument,
+                    name: m(SymbolLiteral, components: ['age']),
+                    node: m(IntegerLiteral, value: 21),
+                ),
             ],
-            keyword_arguments: include(
-                m(SymbolLiteral, components: ['name']) =>
-                    m(StringLiteral, components: ['Aaron']),
-                m(SymbolLiteral, components: ['age']) =>
-                    m(IntegerLiteral, value: 21),
-            ),
             block: nil,
         )
 
         expect(code_to_semantic_node('array.filter { |x| x.even? }')).to m(Send,
             target: m(Send, target: nil, method: :array),
             method: :filter,
-            positional_arguments: [],
-            keyword_arguments: [],
+            arguments: [],
 
             block: m(Block,
                 parameters: m(Parameters,
@@ -125,8 +124,7 @@ RSpec.describe 'AST to SemanticNode' do
         expect(code_to_semantic_node('array.filter { _1.even? }')).to m(Send,
             target: m(Send, target: nil, method: :array),
             method: :filter,
-            positional_arguments: [],
-            keyword_arguments: [],
+            arguments: [],
 
             block: m(Block,
                 parameters: m(Parameters,
@@ -144,10 +142,9 @@ RSpec.describe 'AST to SemanticNode' do
         expect(code_to_semantic_node('array.each_cons(2) { |a, b| a + b }')).to m(Send,
             target: m(Send, target: nil, method: :array),
             method: :each_cons,
-            positional_arguments: [
-                m(IntegerLiteral, value: 2),
+            arguments: [
+                m(PositionalArgument, node: m(IntegerLiteral, value: 2)),
             ],
-            keyword_arguments: [],
 
             block: m(Block,
                 parameters: m(Parameters,
@@ -160,8 +157,8 @@ RSpec.describe 'AST to SemanticNode' do
                 body: m(Send,
                     target: m(LocalVariable, name: :a),
                     method: :+,
-                    positional_arguments: [
-                        m(LocalVariable, name: :b)
+                    arguments: [
+                        m(PositionalArgument, node: m(LocalVariable, name: :b)),
                     ],
                 )
             )
@@ -170,8 +167,9 @@ RSpec.describe 'AST to SemanticNode' do
         expect(code_to_semantic_node('array.each_cons(2) { _1 + _2 }')).to m(Send,
             target: m(Send, target: nil, method: :array),
             method: :each_cons,
-            positional_arguments: [m(IntegerLiteral, value: 2)],
-            keyword_arguments: [],
+            arguments: [
+                m(PositionalArgument, node: m(IntegerLiteral, value: 2)),
+            ],
 
             block: m(Block,
                 parameters: m(Parameters,
@@ -184,8 +182,8 @@ RSpec.describe 'AST to SemanticNode' do
                 body: m(Send,
                     target: m(LocalVariable, name: :_1),
                     method: :+,
-                    positional_arguments: [
-                        m(LocalVariable, name: :_2)
+                    arguments: [
+                        m(PositionalArgument, node: m(LocalVariable, name: :_2)),
                     ],
                 )
             )
@@ -194,8 +192,7 @@ RSpec.describe 'AST to SemanticNode' do
         expect(code_to_semantic_node('x { |a, b = 3, *e, c:, d: 4, **f| a + b + c + d }')).to m(Send,
             target: nil,
             method: :x,
-            positional_arguments: [],
-            keyword_arguments: [],
+            arguments: [],
 
             block: m(Block,
                 parameters: m(Parameters,
@@ -212,13 +209,19 @@ RSpec.describe 'AST to SemanticNode' do
                         target: m(Send,
                             target: m(LocalVariable, name: :a),
                             method: :+,
-                            positional_arguments: [m(LocalVariable, name: :b)],
+                            arguments: [
+                                m(PositionalArgument, node: m(LocalVariable, name: :b)),
+                            ],
                         ),
                         method: :+,
-                        positional_arguments: [m(LocalVariable, name: :c)],
+                        arguments: [
+                            m(PositionalArgument, node: m(LocalVariable, name: :c)),
+                        ],
                     ),
                     method: :+,
-                    positional_arguments: [m(LocalVariable, name: :d)],
+                    arguments: [
+                        m(PositionalArgument, node: m(LocalVariable, name: :d)),
+                    ],
                 )
             )
         )
@@ -279,12 +282,12 @@ RSpec.describe 'AST to SemanticNode' do
                 m(Send,
                     target: be_a(SelfKeyword),
                     method: :a=,
-                    positional_arguments: [m(MagicPlaceholder)]
+                    arguments: [m(PositionalArgument, node: m(MagicPlaceholder))]
                 ),
                 m(Send,
                     target: be_a(SelfKeyword),
                     method: :b=,
-                    positional_arguments: [m(MagicPlaceholder)]
+                    arguments: [m(PositionalArgument, node: m(MagicPlaceholder))]
                 ),
             ],
             value: m(ArrayLiteral, nodes: [
@@ -304,7 +307,7 @@ RSpec.describe 'AST to SemanticNode' do
                         target: m(LocalVariable, name: :x),
                         method: :+,
 
-                        positional_arguments: [m(IntegerLiteral, value: 3)]
+                        arguments: [m(PositionalArgument, node: m(IntegerLiteral, value: 3))]
                     )
                 )
             ]
@@ -326,9 +329,7 @@ RSpec.describe 'AST to SemanticNode' do
             target: m(Send,
                 target: nil,
                 method: :lookup_class,
-                positional_arguments: [
-                    m(SymbolLiteral, components: ['Math'])
-                ],
+                arguments: [m(PositionalArgument, node: m(SymbolLiteral, components: ['Math']))],
             ),
             name: :PI,
         )
@@ -436,8 +437,8 @@ RSpec.describe 'AST to SemanticNode' do
                     condition: m(Send,
                         target: m(Constant, name: :String),
                         method: :===,
-                        positional_arguments: [
-                            m(LocalVariable, fabricated: true),
+                        arguments: [
+                            m(PositionalArgument, node: m(LocalVariable, fabricated: true)),
                         ],
                     ),
                     true_branch: m(Send, method: :a),
@@ -447,8 +448,8 @@ RSpec.describe 'AST to SemanticNode' do
                         condition: m(Send,
                             target: m(IntegerLiteral, value: 3),
                             method: :===,
-                            positional_arguments: [
-                                m(LocalVariable, fabricated: true),
+                            arguments: [
+                                m(PositionalArgument, node: m(LocalVariable, fabricated: true)),
                             ],
                         ),
                         true_branch: m(Send, method: :b),
@@ -515,8 +516,8 @@ RSpec.describe 'AST to SemanticNode' do
             body: m(Send,
                 target: m(LocalVariable, name: :x),
                 method: :+,
-                positional_arguments: [
-                    m(LocalVariable, name: :y),
+                arguments: [
+                    m(PositionalArgument, node: m(LocalVariable, name: :y)),
                 ]
             ),
         )
@@ -544,8 +545,8 @@ RSpec.describe 'AST to SemanticNode' do
             body: m(Send,
                 target: nil,
                 method: :y,
-                positional_arguments: [
-                    be_a(ForwardedArguments),
+                arguments: [
+                    m(PositionalArgument, node: m(ForwardedArguments)),
                 ]
             )
         )
@@ -713,23 +714,27 @@ RSpec.describe 'AST to SemanticNode' do
                         be_a(Parser::Source::Comment) & have_attributes(text: '# Outer')
                     ],
 
-                    positional_arguments: [
-                        m(Send,
-                            target: nil,
-                            method: :a,
+                    arguments: [
+                        m(PositionalArgument,
+                            node: m(Send,
+                                target: nil,
+                                method: :a,
 
-                            comments: [
-                                be_a(Parser::Source::Comment) & have_attributes(text: '# Inner 1')
-                            ]
+                                comments: [
+                                    be_a(Parser::Source::Comment) & have_attributes(text: '# Inner 1')
+                                ]
+                            )
                         ),
-                        m(Send,
-                            target: nil,
-                            method: :e,
+                        m(PositionalArgument,
+                            node: m(Send,
+                                target: nil,
+                                method: :e,
 
-                            comments: [
-                                be_a(Parser::Source::Comment) & have_attributes(text: '# Inner 2')
-                            ]
-                        )
+                                comments: [
+                                    be_a(Parser::Source::Comment) & have_attributes(text: '# Inner 2')
+                                ]
+                            ),
+                        ),
                     ]
                 ),
             ]

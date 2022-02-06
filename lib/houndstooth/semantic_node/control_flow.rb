@@ -96,7 +96,7 @@ module Houndstooth::SemanticNode
 
                         target: value,
                         method: :===,
-                        positional_arguments: [fabricated_subject_var],
+                        arguments: [PositionalArgument.new(fabricated_subject_var)],
                     ),
                     true_branch: body,
                     false_branch: nil,

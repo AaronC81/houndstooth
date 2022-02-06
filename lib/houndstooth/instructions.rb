@@ -264,6 +264,41 @@ module Houndstooth
             end
         end
 
+        # An argument to a `SendInstruction`.
+        # @abstract
+        class Argument
+            # The variable used for the argument's value.
+            # @return [Variable]
+            attr_accessor :variable
+
+            def initialize(variable)
+                @variable = variable
+            end
+
+            def to_assembly
+                variable.to_assembly
+            end
+        end
+
+        # A standard, singular, positional argument.
+        class PositionalArgument < Argument; end
+
+        # A singular keyword argument.
+        class KeywordArgument < Argument
+            # The keyword.
+            # @return [String]
+            attr_accessor :name
+
+            def initialize(variable, name:)
+                super(variable)
+                @name = name.to_s
+            end
+
+            def to_assembly
+                "#{name}: #{variable.to_assembly}"
+            end
+        end 
+
         # A method call on an object.
         class SendInstruction < Instruction
             # TODO: blocks
@@ -277,13 +312,9 @@ module Houndstooth
             # @return [Symbol]
             attr_accessor :method_name
 
-            # The positional arguments to pass with the call.
-            # @return [<Variable>]
-            attr_accessor :positional_arguments
-
-            # The keyword arguments to pass with the call.
-            # @return [{String => Variable}]
-            attr_accessor :keyword_arguments
+            # The arguments to this call.
+            # @return [<Argument>]
+            attr_accessor :arguments
 
             # If true, this isn't really a send, but instead a super call. The `target` and
             # `method_name` of this instance should be ignored.
@@ -292,25 +323,22 @@ module Houndstooth
             # @return [Boolean]
             attr_accessor :super_call
 
-            def initialize(block:, node:, target:, method_name:, positional_arguments: nil, keyword_arguments: nil, super_call: false)
+            def initialize(block:, node:, target:, method_name:, arguments: nil, super_call: false)
                 super(block: block, node: node)
                 @target = target
                 @method_name = method_name
-                @positional_arguments = positional_arguments || []
-                @keyword_arguments = keyword_arguments || {}
+                @arguments = arguments || []
                 @super_call = super_call
             end
 
             def to_assembly
-                pa = positional_arguments.map { |a| a.to_assembly }.join(", ")
-                ka = keyword_arguments.map { |n, a| "#{n}: #{a.to_assembly}" }.join(", ")
+                args = arguments.map { |a| a.to_assembly }.join(", ")
 
                 if super_call
-                    "#{super}send_super "
+                    "#{super}send_super #{args}"
                 else
-                    "#{super}send #{target.to_assembly} #{method_name} "
-                end +
-                    (ka != "" ? "(#{pa} | #{ka})" : "(#{pa})")
+                    "#{super}send #{target.to_assembly} #{method_name} #{args}"
+                end
             end
         end
 

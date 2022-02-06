@@ -80,7 +80,7 @@ module Houndstooth::SemanticNode
                         node: self,
                         target: previous_variable,
                         method_name: :+,
-                        positional_arguments: [variable],
+                        arguments: [I::PositionalArgument.new(variable)],
                     )
                     previous_variable = block.instructions.last.result
                 end

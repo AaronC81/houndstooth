@@ -44,12 +44,12 @@ RSpec.describe Houndstooth::Instructions do
             m(I::SendInstruction,
                 target: string_interp[0].result,
                 method_name: :+,
-                positional_arguments: [string_interp[2].result],
+                arguments: [m(I::PositionalArgument, variable: string_interp[2].result)],
             ),
             m(I::SendInstruction,
                 target: string_interp[4].result,
                 method_name: :+,
-                positional_arguments: [string_interp[3].result],
+                arguments: [m(I::PositionalArgument, variable: string_interp[3].result)],
             ),
         ]
 
@@ -63,12 +63,12 @@ RSpec.describe Houndstooth::Instructions do
             m(I::SendInstruction,
                 target: sym_interp[0].result,
                 method_name: :+,
-                positional_arguments: [sym_interp[2].result],
+                arguments: [m(I::PositionalArgument, variable: sym_interp[2].result)],
             ),
             m(I::SendInstruction,
                 target: sym_interp[4].result,
                 method_name: :+,
-                positional_arguments: [sym_interp[3].result],
+                arguments: [m(I::PositionalArgument, variable: sym_interp[3].result)],
             ),
             m(I::SendInstruction,
                 target: sym_interp[5].result,
@@ -117,8 +117,7 @@ RSpec.describe Houndstooth::Instructions do
             m(I::SendInstruction,
                 target: ins[0].result,
                 method_name: :a,
-                positional_arguments: [],
-                keyword_arguments: {},
+                arguments: [],
             ),
         ]
 
@@ -129,8 +128,7 @@ RSpec.describe Houndstooth::Instructions do
             m(I::SendInstruction,
                 target: ins[0].result,
                 method_name: :abs,
-                positional_arguments: [],
-                keyword_arguments: {},
+                arguments: [],
             ),
         ]
 
@@ -150,14 +148,12 @@ RSpec.describe Houndstooth::Instructions do
             m(I::SendInstruction,
                 target: ins[0].result,
                 method_name: :combine,
-                positional_arguments: [
-                    ins[1].result,
-                    ins[2].result,
-                    ins[3].result,
+                arguments: [
+                    m(I::PositionalArgument, variable: ins[1].result),
+                    m(I::PositionalArgument, variable: ins[2].result),
+                    m(I::PositionalArgument, variable: ins[3].result),
+                    m(I::KeywordArgument, name: 'strategy', variable: ins[4].result),
                 ],
-                keyword_arguments: {
-                    "strategy" => ins[4].result,
-                },
             ),
         ]
 
@@ -198,7 +194,9 @@ RSpec.describe Houndstooth::Instructions do
             m(I::LiteralInstruction, value: 3, result: m(I::Variable, ruby_identifier: "a")),
             m(I::SelfInstruction),
             m(I::AssignExistingInstruction, variable: ins[0].result, result: ins[0].result),
-            m(I::SendInstruction, method_name: :puts, positional_arguments: [ins[0].result]),
+            m(I::SendInstruction, method_name: :puts, arguments: [
+                m(I::PositionalArgument, variable: ins[0].result)
+            ]),
         ]
 
         ins = code_to_block("x = 3; y = x").instructions

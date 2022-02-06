@@ -176,7 +176,7 @@ module Houndstooth::SemanticNode
                     method: op,
                     target: target,
 
-                    positional_arguments: [value]
+                    arguments: [PositionalArgument.new(value)]
                 )
             )
         end
