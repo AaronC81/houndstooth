@@ -59,16 +59,34 @@ module Houndstooth::Stdlib
         environment.add_type E::DefinedType.new(
             path: "Numeric",
             superclass: E::PendingDefinedType.new("Object"),
+
+            instance_methods: [
+                E::Method.new(:+, [parse("(Numeric) -> Numeric")]),
+            ]
         )
 
         environment.add_type E::DefinedType.new(
             path: "Integer",
             superclass: E::PendingDefinedType.new("Numeric"),
+
+            instance_methods: [
+                E::Method.new(:+, [
+                    parse("(Integer) -> Integer"),
+                    parse("(Float) -> Float"),
+                ]),
+            ]
         )
 
         environment.add_type E::DefinedType.new(
             path: "Float",
             superclass: E::PendingDefinedType.new("Numeric"),
+
+            instance_methods: [
+                E::Method.new(:+, [
+                    parse("(Integer) -> Float"),
+                    parse("(Float) -> Float"),
+                ]),
+            ]
         )
 
         environment.add_type E::DefinedType.new(
@@ -76,6 +94,7 @@ module Houndstooth::Stdlib
             superclass: E::PendingDefinedType.new("Object"),
 
             instance_methods: [
+                E::Method.new(:+, [parse("(String) -> String")]),
                 E::Method.new(:length, [parse("() -> Integer")]),
             ]
         )
