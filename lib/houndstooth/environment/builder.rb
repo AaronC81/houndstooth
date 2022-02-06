@@ -114,6 +114,7 @@ class Houndstooth::Environment
                     return
                 end
 
+                # TODO: Don't allow methods with duplicate names
                 type_context.instance_methods << Method.new(name, signatures)
             end
         end

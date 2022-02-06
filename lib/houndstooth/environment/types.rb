@@ -23,6 +23,20 @@ class Houndstooth::Environment
             end
         end
 
+        # Determine whether the type `other` can be passed into a "slot" (e.g. function parameter)
+        # which takes this type.
+        #
+        # The return value is either:
+        #   - A positive (or zero) integer, indicating the "distance" between the two types. Zero
+        #     indicates an exact type match (e.g. Integer and Integer), while every increment 
+        #     indicates a level of cast (e.g. Integer -> Numeric = 1, Integer -> Object = 2).
+        #     This can be used to select an overload which is closest to the given set of arguments
+        #     if multiple overloads match.
+        #   - False, if the types do not match.
+        def accepts?(other)
+            raise 'unimplemented'
+        end
+
         # Returns an RBS representation of this type. Subclasses should override this.
         # This will not have the same formatting as the input string this is parsed from.
         # TODO: implement for method types
@@ -112,6 +126,19 @@ class Houndstooth::Environment
             end
         end
 
+        def accepts?(other)
+            distance = 0
+            current = other
+            until current.nil?
+                return distance if current == self
+
+                current = current&.superclass
+                distance += 1
+            end
+
+            false
+        end
+
         def rbs
             path
         end
@@ -154,24 +181,54 @@ class Houndstooth::Environment
             types.map! { |type| resolve_type_if_pending(type, self, environment) }
         end
 
+        def accepts?(other)
+            # Normalise into an array
+            if other.is_a?(UnionType)
+                other_types = other.types
+            else
+                other_types = [other]
+            end
+
+            # Each of the other types should fit into one of this type's options
+            # Find minimum distances from each candidate and sum them, plus one since this union is
+            # itself a "hop"
+            other_types.map do |ot|
+                candidates = types.map { |mt| mt.accepts?(ot) }.reject { |r| r == false }
+                return false if candidates.empty?
+
+                candidates.min
+            end.sum + 1
+        end
+
         def rbs
             types.map(&:rbs).join(" | ")
         end 
     end
     
     class SelfType < Type
+        # TODO: implement accepts?
+
         def rbs
             "self"
         end
     end
 
     class VoidType < Type
+        def accepts?(other)
+            # Only valid as a return type, and you can return anything in a void method
+            1
+        end
+
         def rbs
             "void"
         end
     end
 
     class UntypedType < Type
+        def accepts?(other)
+            1
+        end
+
         def rbs
             "untyped"
         end
@@ -251,6 +308,8 @@ class Houndstooth::Environment
             rest_keyword_parameter&.resolve_all_pending_types(environment, context: context)
             block_parameter&.resolve_all_pending_types(environment, context: context)
         end
+
+        # TODO: implement accepts? and rbs
     end
 
     class Parameter < Type

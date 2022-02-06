@@ -189,4 +189,46 @@ RSpec.describe Houndstooth::Environment do
             ),
         )
     end
+
+    it 'can have acceptance checked' do
+        str = subject.resolve_type('String')
+        int = subject.resolve_type('Integer')
+        num = subject.resolve_type('Numeric')
+        obj = subject.resolve_type('Object')
+
+        # Strings
+        expect(str.accepts?(str)).to eq 0
+        expect(obj.accepts?(str)).to eq 1
+        expect(str.accepts?(obj)).to eq false
+
+        # Integers
+        expect(int.accepts?(int)).to eq 0
+        expect(num.accepts?(int)).to eq 1
+        expect(obj.accepts?(int)).to eq 2
+        expect(int.accepts?(num)).to eq false
+        expect(int.accepts?(str)).to eq false
+
+        # Untyped and void
+        expect(E::UntypedType.new.accepts?(int)).to eq 1
+        expect(E::VoidType.new.accepts?(int)).to eq 1
+
+        # Unions
+        int_str = E::UnionType.new([int, str])
+        expect(int_str.accepts?(int)).to eq 1
+        expect(int_str.accepts?(str)).to eq 1
+        expect(int_str.accepts?(num)).to eq false
+        expect(int_str.accepts?(obj)).to eq false
+
+        num_str = E::UnionType.new([num, str])
+        expect(num_str.accepts?(int)).to eq 2
+        expect(num_str.accepts?(str)).to eq 1
+        expect(num_str.accepts?(num)).to eq 1
+        expect(num_str.accepts?(obj)).to eq false
+
+        int_num_str = E::UnionType.new([int_str, num_str]).simplify
+        expect(int_num_str.accepts?(int)).to eq 1
+        expect(int_num_str.accepts?(str)).to eq 1
+        expect(int_num_str.accepts?(num)).to eq 1
+        expect(int_num_str.accepts?(obj)).to eq false
+    end
 end
