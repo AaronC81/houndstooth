@@ -12,6 +12,7 @@ options = Optimist::options do
     opt :debug_nodes, "print parsed node tree", short: :none
     opt :debug_environment, "print known types and methods", short: :none
     opt :debug_instructions, "print generated instructions", short: :none
+    opt :debug_type_changes, "print instructions after type changes", short: :none
 end
 
 # Checks if there are any errors. If so, prints them and aborts.
@@ -91,6 +92,12 @@ end
 checker = Houndstooth::TypeChecker.new(env)
 checker.process_block(block)
 abort_on_error!
+
+if options[:debug_type_changes]
+    puts "--- Inst. Types ---"
+    puts block.to_assembly
+    puts "-------------------"
+end
 
 # Yay!
 puts "All good!"
