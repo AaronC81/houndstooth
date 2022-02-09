@@ -41,7 +41,7 @@ else
     Optimist::die("must pass either --file/-f or --code/-e")
 end
 
-buffer = Parser::Source::Buffer.new(options[:file])
+buffer = Parser::Source::Buffer.new(options[:file] || 'inline code')
 buffer.source = code
 
 ast_node, comments = Parser::Ruby30.new.parse_with_comments(buffer)
