@@ -68,9 +68,9 @@ class Houndstooth::Environment
     end
 
     class DefinedType < Type
-        def initialize(path: nil, definition_loc: nil, superclass: nil, instance_methods: nil, static_methods: nil, eigen: :generate)
+        def initialize(path: nil, node: nil, superclass: nil, instance_methods: nil, static_methods: nil, eigen: :generate)
             @path = path.to_s
-            @definition_loc = definition_loc
+            @node = node
             @superclass = superclass
             @instance_methods = instance_methods || []
             @static_methods = static_methods || []
@@ -99,8 +99,8 @@ class Houndstooth::Environment
             path.split("::").last
         end
 
-        # @return [Parser::Source::Range]
-        attr_reader :definition_loc
+        # @return [SemanticNode]
+        attr_reader :node
 
         # @return [Type, nil]
         attr_accessor :superclass
