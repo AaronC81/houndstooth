@@ -121,6 +121,19 @@ class Houndstooth::Environment
             superclass&.resolve_instance_method(method_name)
         end
 
+        # A path to this type, but with one layer of "eigen-ness" removed from the final element.
+        # A bit cursed, but used for constant resolution.
+        # @return [String]
+        def uneigen
+            path_parts = path.split("::")
+            *rest, name = path_parts
+
+            raise "internal error: can't uneigen a non-eigen type" unless /^<Eigen:(.+)>$/ === name
+            uneigened_name = $1
+
+            [*rest, uneigened_name].join("::")
+        end
+
         def resolve_all_pending_types(environment, context: nil)
             @superclass = resolve_type_if_pending(superclass, self, environment)
             @eigen = resolve_type_if_pending(eigen, self, environment)
@@ -146,6 +159,28 @@ class Houndstooth::Environment
         def rbs
             path
         end
+    end
+
+    # A slightly hacky type which represents the base namespace, such as when a constant is accessed
+    # using ::A syntax. 
+    # This only appears in one place; the type change of a `ConstantBaseAccessInstruction`. This is
+    # invalid if it appears in any context where an actual type is expected.
+    # Unlike other constant accesses, this does NOT represent an *instance* of the base namespace,
+    # because that cannot exist.
+    class BaseDefinedType < Type
+        def accepts?(other)
+            false
+        end
+
+        def name
+            ""
+        end
+        alias path name
+        alias uneigen name
+
+        def rbs
+            "(base)"
+        end 
     end
 
     class UnionType < Type

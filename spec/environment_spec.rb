@@ -283,4 +283,8 @@ RSpec.describe Houndstooth::Environment do
             [I::PositionalArgument.new(nil), t.('Object')],
         ])).to eq nil
     end
+
+    it 'can be un-eigened' do
+        expect(subject.resolve_type('Object').eigen.uneigen).to eq 'Object'
+    end
 end
