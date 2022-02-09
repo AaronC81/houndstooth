@@ -52,6 +52,65 @@ module Houndstooth::SemanticNode
         end
     end
 
+    module TypeDefinitionMixin
+        def type_definition_instructions(block, kind)
+            # Generate the name as instructions, but remove the last one to discover the name
+            # (Because the name will lead up to the target, e.g. class A::B)
+            # We measure how many instructions are generated to figure out if there was actually a
+            # leading path
+            instruction_count = block.instructions.length
+            name.to_instructions(block)
+            instruction_count = block.instructions.length - instruction_count
+            unless block.instructions.last.is_a?(I::ConstantAccessInstruction)
+                Houndstooth::Errors::Error.new(
+                    "Type name must be a constant",
+                    [[name.loc.expression, "unsupported"]]
+                ).push
+                return
+            end
+            type_name = block.instructions.pop.name.to_sym
+            if instruction_count > 1
+                type_target = block.instructions.last&.result
+            else
+                type_target = nil
+            end
+
+            if kind == :class
+                # Generate superclass, or if there isn't one, use Object
+                if superclass
+                    superclass.to_instructions(block)
+                    type_superclass = block.instructions.last.result
+                else
+                    block.instructions << I::ConstantBaseAccessInstruction.new(block: block, node: self)
+                    block.instructions << I::ConstantAccessInstruction.new(
+                        block: block,
+                        node: self,
+                        target: block.instructions.last.result,
+                        name: :Object,
+                    )
+                    type_superclass = block.instructions.last.result
+                end
+            end
+
+            # Build type
+            tdi = I::TypeDefinitionInstruction.new(
+                block: block,
+                node: self,
+                name: type_name,
+                kind: kind,
+                target: type_target,
+                superclass: type_superclass,
+                body: nil,
+            )
+            tdi.body =
+                I::InstructionBlock.new(has_scope: true, parent: tdi).tap do |blk|
+                    body&.to_instructions(blk)
+                end
+
+            block.instructions << tdi
+        end
+    end
+
     # A class definition.
     class ClassDefinition < Base
         # @return [SemanticNode]
@@ -79,6 +138,11 @@ module Houndstooth::SemanticNode
                 superclass: superclass,
                 body: body,
             )
+        end
+
+        include TypeDefinitionMixin
+        def to_instructions(block)
+            type_definition_instructions(block, :class)
         end
     end
 
@@ -126,6 +190,11 @@ module Houndstooth::SemanticNode
                 name: name,
                 body: body,
             )
+        end
+
+        include TypeDefinitionMixin
+        def to_instructions(block)
+            type_definition_instructions(block, :module)
         end
     end
 

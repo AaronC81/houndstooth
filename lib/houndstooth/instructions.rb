@@ -408,5 +408,79 @@ module Houndstooth
                 false_branch.walk(&blk)
             end
         end
+
+        # An access of the base constant value. For example, `::A` accesses `A` from the base.
+        class ConstantBaseAccessInstruction < Instruction
+            def to_assembly
+                "#{super}constbase"
+            end
+        end
+
+        # An access of a constant value, class, or module.
+        class ConstantAccessInstruction < Instruction
+            # A variable of the target from which to access this constant.
+            # If `nil`, accesses from the current context.
+            # @return [Variable, nil]
+            attr_accessor :target
+
+            # The name of the constant to access.
+            # @return [Symbol]
+            attr_accessor :name
+
+            def initialize(block:, node:, name:, target:)
+                super(block: block, node: node)
+                @name = name
+                @target = target
+            end
+
+            def to_assembly
+                "#{super}const #{target&.to_assembly || '(here)'} #{name}"
+            end
+        end
+
+        # A definition of a new class or module.
+        class TypeDefinitionInstruction < Instruction
+            # The name of the item being defined.
+            # @return [Symbol]
+            attr_accessor :name
+
+            # The kind of definition: either :class or :module.
+            # @return [Symbol]
+            attr_accessor :kind
+
+            # The constant on which the type is being defined.
+            # If `nil`, defines on the current context.
+            # @return [Variable, nil]
+            attr_accessor :target
+
+            # The superclass of this type, if it's a class.
+            # @return [Variable, nil]
+            attr_accessor :superclass
+
+            # The block to execute to build the type definition.
+            # @return [InstructionBlock]
+            attr_accessor :body
+
+            def initialize(block:, node:, name:, kind:, target:, superclass:, body:)
+                super(block: block, node: node)
+                @name = name
+                @kind = kind
+                @target = target
+                @superclass = superclass
+                @body = body
+            end
+
+            def to_assembly
+                super +
+                    "typedef #{kind} #{name} on #{target&.to_assembly || '(here)'}#{superclass ? " super #{superclass.to_assembly}" : ''}\n" \
+                    "#{assembly_indent(body.to_assembly)}\n" \
+                    "end"
+            end
+
+            def walk(&blk)
+                super
+                body.walk(&blk)
+            end
+        end
     end
 end

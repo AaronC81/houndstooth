@@ -83,6 +83,37 @@ module Houndstooth
 
                 # Set result variable to return type
                 ins.type_change = sig.return_type
+
+            when Instructions::ConstantBaseAccessInstruction
+                ins.type_change = Environment::BaseDefinedType.new
+
+            when Instructions::ConstantAccessInstruction
+                raise "implicit constant targets not yet supported" if ins.target.nil?
+
+                # TODO: will only work with types, not actual constants
+                target = ins.block.variable_type_at!(ins.target, ins)
+                new_type = "#{target.uneigen}::#{ins.name}"
+                resolved = env.resolve_type(new_type)
+
+                if resolved.nil?
+                    Houndstooth::Errors::Error.new(
+                        "No constant named `#{ins.name}` on `#{target.rbs}`",
+                        [[ins.node.ast_node.loc.expression, "no such constant"]]
+                    ).push
+
+                    # Assign result to untyped so type checking can continue
+                    # TODO: another use for "abandoned" type
+                    ins.type_change = Environment::UntypedType.new
+                    return
+                end
+
+                ins.type_change = resolved.eigen
+
+            when Instructions::TypeDefinitionInstruction
+                # TODO: just skip over these for now
+
+            else
+                raise "internal error: don\'t know how to type check #{ins.class.to_s}"
             end
         end
 

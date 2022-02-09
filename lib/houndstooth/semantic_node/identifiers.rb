@@ -17,6 +17,22 @@ module Houndstooth::SemanticNode
                 name: name,
             )
         end
+
+        def to_instructions(block)
+            if target.nil?
+                target_value = nil
+            else
+                target.to_instructions(block)
+                target_value = block.instructions.last.result
+            end
+
+            block.instructions << I::ConstantAccessInstruction.new(
+                block: block,
+                node: self,
+                name: name,
+                target: target_value,
+            )
+        end
     end
 
     # A special node which is only valid as the target of a `Constant`. Represents the `::A` syntax
@@ -25,6 +41,10 @@ module Houndstooth::SemanticNode
         register_ast_converter :cbase do |ast_node|
             ConstantBase.new(ast_node: ast_node)
         end 
+
+        def to_instructions(block)
+            block.instructions << I::ConstantBaseAccessInstruction.new(block: block, node: self)
+        end
     end
 
     # Assignment to a constant: `X::Y = 3`
