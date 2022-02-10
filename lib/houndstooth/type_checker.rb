@@ -88,10 +88,12 @@ module Houndstooth
                 ins.type_change = Environment::BaseDefinedType.new
 
             when Instructions::ConstantAccessInstruction
-                raise "implicit constant targets not yet supported" if ins.target.nil?
-
-                # TODO: will only work with types, not actual constants
-                target = ins.block.variable_type_at!(ins.target, ins)
+                if ins.target
+                    # TODO: will only work with types, not actual constants
+                    target = ins.block.variable_type_at!(ins.target, ins)
+                else
+                    target = ins.block.lexical_context!
+                end
                 new_type = "#{target.uneigen}::#{ins.name}"
                 resolved = env.resolve_type(new_type)
 
@@ -108,6 +110,9 @@ module Houndstooth
                 end
 
                 ins.type_change = resolved.eigen
+
+            when Instructions::SelfInstruction
+                ins.type_change = ins.block.self_type!
 
             when Instructions::TypeDefinitionInstruction
                 # TODO: just skip over these for now

@@ -48,10 +48,23 @@ module Houndstooth
             # @return [Instruction, nil]
             attr_reader :parent
 
-            def initialize(instructions: nil, has_scope:, parent:)
+            # The type in which this block is executed. Used for constant resolution, which can
+            # differ from the `self` type in circumstances such as `class_exec`.
+            # Can be nil to indicate no change from the parent.
+            # @return [DefinedType, nil]
+            attr_accessor :lexical_context_change
+
+            # The type of `self` within this block.
+            # Can be nil to indicate no change from the parent.
+            # @return [DefinedType, nil]
+            attr_accessor :self_type_change
+
+            def initialize(instructions: nil, has_scope:, parent:, lexical_context_change: nil, self_type_change: nil)
                 @instructions = instructions || []
                 @scope = has_scope ? [] : nil
                 @parent = parent
+                @lexical_context_change = lexical_context_change
+                @self_type_change = self_type_change
             end
 
             # Returns the type of a variable at a particular instruction, either by reference or
@@ -113,6 +126,20 @@ module Houndstooth
             # Identical to `return_type`, but throws an exception on a missing type.
             def return_type!
                 return_type or raise "assertion failed: missing type"
+            end
+
+            # Looks for the `self` type, here or on a parent block, or throws an exception if not
+            # found.
+            def self_type!
+                return self_type_change if self_type_change
+                parent&.block.&self_type! or raise "assertion failed: missing self type"
+            end
+
+            # Looks for the lexical context, here or on a parent block, or throws an exception if
+            # not found.
+            def lexical_context!
+                return lexical_context_change if lexical_context_change
+                parent&.block.&lexical_context_change! or raise "assertion failed: missing lexical context type"
             end
             
             # Returns the `Variable` instance for a named Ruby local variable, by its identifier.

@@ -80,6 +80,9 @@ end
 # methods, probably, or just ignore definitions? Don't know!
 block = Houndstooth::Instructions::InstructionBlock.new(has_scope: true, parent: nil)
 node.to_instructions(block)
+block.lexical_context_change = Houndstooth::Environment::BaseDefinedType.new
+env.types["__HoundstoothMain"] = Houndstooth::Environment::DefinedType.new(path: "__HoundstoothMain")
+block.self_type_change = env.types["__HoundstoothMain"]
 abort_on_error!
 
 if options[:debug_instructions]
