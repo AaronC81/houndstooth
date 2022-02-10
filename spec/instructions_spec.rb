@@ -191,19 +191,22 @@ RSpec.describe Houndstooth::Instructions do
     it 'can be created for local variables' do
         ins = code_to_block("a = 3; puts a").instructions
         expect(ins).to match_array [
-            m(I::LiteralInstruction, value: 3, result: m(I::Variable, ruby_identifier: "a")),
+            m(I::LiteralInstruction, value: 3),
+            m(I::AssignExistingInstruction, variable: ins[0].result, result: m(I::Variable, ruby_identifier: "a")),
             m(I::SelfInstruction),
-            m(I::AssignExistingInstruction, variable: ins[0].result, result: ins[0].result),
+            m(I::AssignExistingInstruction, variable: ins[1].result, result: ins[1].result),
             m(I::SendInstruction, method_name: :puts, arguments: [
-                m(I::PositionalArgument, variable: ins[0].result)
+                m(I::PositionalArgument, variable: ins[1].result)
             ]),
         ]
 
         ins = code_to_block("x = 3; y = x").instructions
         expect(ins).to match_array [
-            m(I::LiteralInstruction, value: 3, result: m(I::Variable, ruby_identifier: "x")),
+            m(I::LiteralInstruction, value: 3),
+            m(I::AssignExistingInstruction, variable: ins[0].result, result: m(I::Variable, ruby_identifier: "x")),
+            m(I::AssignExistingInstruction, variable: ins[1].result, result: ins[1].result),
             m(I::AssignExistingInstruction,
-                variable: ins[0].result,
+                variable: ins[1].result,
                 result: m(I::Variable, ruby_identifier: 'y'),
             ),
         ]

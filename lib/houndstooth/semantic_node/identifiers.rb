@@ -213,7 +213,12 @@ module Houndstooth::SemanticNode
             end
 
             value.to_instructions(block)
-            block.instructions.last.result = block.resolve_local_variable(target.name.to_s, create: true)
+            block.instructions << I::AssignExistingInstruction.new(
+                block: block,
+                node: self,
+                variable: block.instructions.last.result,
+                result: block.resolve_local_variable(target.name.to_s, create: true),
+            )
         end
     end
 
