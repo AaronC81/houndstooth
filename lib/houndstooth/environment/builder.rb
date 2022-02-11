@@ -33,6 +33,8 @@ class Houndstooth::Environment
                 end
 
             when Houndstooth::SemanticNode::ClassDefinition
+                is_magic_basic_object = node.comments.find { |c| c.text.strip == "#!magic basicobject" }
+
                 name = constant_to_string(node.name)
                 if name.nil?
                     Houndstooth::Errors::Error.new(
@@ -52,14 +54,28 @@ class Houndstooth::Environment
                         return 
                     end
                 else
-                    superclass = "Object"
+                    # Special case used only for BasicObject
+                    if is_magic_basic_object
+                        superclass = nil 
+                    else
+                        superclass = "Object"
+                    end
                 end
 
                 new_type = DefinedType.new(
                     node: node,
                     path: append_type_and_rel_path(type_context, name),
-                    superclass: PendingDefinedType.new(superclass)
+                    superclass: superclass ? PendingDefinedType.new(superclass) : nil
                 )
+                
+                if is_magic_basic_object
+                    new_type.eigen = DefinedType.new(
+                        path: "<Eigen:BasicObject>",
+                        superclass: PendingDefinedType.new("Class"),
+                        instance_methods: [],
+                    )
+                end
+
                 environment.add_type(new_type)
 
                 analyze(node: node.body, type_context: new_type)
@@ -84,10 +100,14 @@ class Houndstooth::Environment
                 analyze(node: node.body, type_context: new_type)
             
             when Houndstooth::SemanticNode::MethodDefinition
-                if node.target
+                if node.target.nil?
+                    target = type_context
+                elsif node.target.is_a?(Houndstooth::SemanticNode::SelfKeyword)
+                    target = type_context.eigen
+                else
                     # TODO
                     Houndstooth::Errors::Error.new(
-                        "Method definitions with an explicit target are not yet supported",
+                        "`self` is the only supported explicit target",
                         [[node.target.ast_node.loc.expression, "unsupported"]]
                     ).push
                     return 
@@ -117,7 +137,7 @@ class Houndstooth::Environment
                 end
 
                 # TODO: Don't allow methods with duplicate names
-                type_context.instance_methods << Method.new(name, signatures)
+                target.instance_methods << Method.new(name, signatures)
             end
         end
 
@@ -132,7 +152,7 @@ class Houndstooth::Environment
             case node
             when Houndstooth::SemanticNode::Constant
                 if node.target.nil?
-                    node.name
+                    node.name.to_s
                 else
                     target_as_str = constant_to_string(node.target) or return nil
                     "#{target_as_str}::#{node.name}"

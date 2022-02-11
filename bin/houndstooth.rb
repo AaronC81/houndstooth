@@ -30,7 +30,6 @@ end
 
 # Create an environment with stdlib types
 env = Houndstooth::Environment.new
-Houndstooth::Stdlib.add_types(env) unless options[:no_stdlib]
 
 # Load and parse code from file
 if options[:file]
@@ -42,12 +41,17 @@ else
     Optimist::die("must pass either --file/-f or --code/-e")
 end
 
-buffer = Parser::Source::Buffer.new(options[:file] || 'inline code')
-buffer.source = code
+if options[:no_stdlib]
+    htt_files = []
+else
+    htt_files = [["stdlib.htt", File.read(File.join(__dir__, '..', 'types', 'stdlib.htt'))]]
+end
 
-ast_node, comments = Parser::Ruby30.new.parse_with_comments(buffer)
-$comments = comments
-node = Houndstooth::SemanticNode.from_ast(ast_node)
+# Parse and run builder over all files
+all_nodes = [[options[:file] || 'inline code', code], *htt_files].map do |name, contents|
+    Houndstooth.process_file(name, contents, env) 
+end
+node = all_nodes[0]
 abort_on_error!
 
 if options[:debug_nodes]
@@ -56,8 +60,8 @@ if options[:debug_nodes]
     puts "-------------------"
 end
 
-# Run builder over parsed code
-Houndstooth::Environment::Builder.new(node, env).analyze
+# Resolve environment
+env.resolve_all_pending_types
 abort_on_error!
 
 if options[:debug_environment]

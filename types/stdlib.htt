@@ -1,0 +1,67 @@
+# Useful reference:
+# https://tiagodev.wordpress.com/2013/04/16/eigenclasses-for-lunch-the-ruby-object-model/
+
+#!magic basicobject
+class BasicObject
+    #: () -> void
+    def initialize; end
+
+    #: () -> self
+    def self.new; end
+end
+
+class Class < Module
+    #: () -> Class
+    def superclass; end
+
+    #: () -> Object
+    def new; end
+
+    #: () -> void
+    def initialize; end
+end
+
+class Object < BasicObject
+    #: () -> String
+    def inspect; end
+end
+
+class Module
+    # TODO: needs arrays, which don't exist yet
+    #: () -> untyped
+    def nesting; end
+end
+
+class Numeric
+    #: (Numeric) -> Numeric
+    def +(other); end
+end
+
+class Integer < Numeric
+    #: (Integer) -> Integer
+    #: (Float) -> Float
+    def +(other); end
+end
+
+class Float < Numeric
+    #: (Integer) -> Float
+    #: (Float) -> Float
+    def +(other); end
+end
+
+class String
+    #: (String) -> String
+    def +(other); end
+
+    #: () -> Integer
+    def length; end
+end
+
+class Symbol; end
+
+# Doesn't actually exist, but we need some kind of boolean type
+class Boolean; end
+class TrueClass < Boolean; end
+class FalseClass < Boolean; end
+
+class NilClass; end

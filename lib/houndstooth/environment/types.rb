@@ -43,7 +43,7 @@ class Houndstooth::Environment
         #     if multiple overloads match.
         #   - False, if the types do not match.
         def accepts?(other)
-            raise 'unimplemented'
+            raise "unimplemented for #{self.class.name}"
         end
 
         # Returns an RBS representation of this type. Subclasses should override this.
@@ -105,7 +105,7 @@ class Houndstooth::Environment
         attr_accessor :superclass
 
         # @return [Type]
-        attr_reader :eigen
+        attr_accessor :eigen
 
         # @return [<Method>]
         attr_reader :instance_methods
