@@ -65,3 +65,15 @@ class TrueClass < Boolean; end
 class FalseClass < Boolean; end
 
 class NilClass; end
+
+class Kernel
+    #: (?Float) -> Float
+    #: (Integer) -> Integer
+    def self.rand(max=nil); end
+
+    #: (?String) -> void
+    def self.puts(message=nil); end
+
+    #: (?String) -> void
+    def self.print(message=nil); end
+end
