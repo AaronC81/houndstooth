@@ -68,12 +68,11 @@ class Houndstooth::Environment
     end
 
     class DefinedType < Type
-        def initialize(path: nil, node: nil, superclass: nil, instance_methods: nil, static_methods: nil, eigen: :generate)
+        def initialize(path: nil, node: nil, superclass: nil, instance_methods: nil, eigen: :generate)
             @path = path.to_s
             @node = node
             @superclass = superclass
             @instance_methods = instance_methods || []
-            @static_methods = static_methods || []
 
             if eigen == :generate
                 @eigen = DefinedType.new(
