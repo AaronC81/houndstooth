@@ -251,6 +251,14 @@ class Houndstooth::Environment
         end
     end
 
+    class InstanceType < Type
+        # TODO: implement accepts?
+
+        def rbs
+            "instance"
+        end
+    end
+
     class VoidType < Type
         def accepts?(other)
             # Only valid as a return type, and you can return anything in a void method

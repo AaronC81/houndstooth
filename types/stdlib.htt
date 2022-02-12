@@ -6,7 +6,7 @@ class BasicObject
     #: () -> void
     def initialize; end
 
-    #: () -> self
+    #: () -> instance
     def self.new; end
 end
 
@@ -14,7 +14,7 @@ class Class < Module
     #: () -> Class
     def superclass; end
 
-    #: () -> Object
+    #: () -> instance
     def new; end
 
     #: () -> void

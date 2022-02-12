@@ -80,6 +80,9 @@ class Houndstooth::Environment
             when RBS::Types::Bases::Self
                 SelfType.new
 
+            when RBS::Types::Bases::Instance
+                InstanceType.new
+
             when RBS::Types::Bases::Any # written as `untyped`
                 UntypedType.new
 

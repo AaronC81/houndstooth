@@ -81,8 +81,16 @@ module Houndstooth
                     return
                 end
 
-                # Set result variable to return type
-                ins.type_change = sig.return_type
+                # Check for return type special cases
+                case sig.return_type
+                when Environment::SelfType
+                    ins.type_change = target_type
+                when Environment::InstanceType
+                    ins.type_change = env.resolve_type(target_type.uneigen)
+                else
+                    # No special cases, set result variable to return type
+                    ins.type_change = sig.return_type
+                end
 
             when Instructions::ConstantBaseAccessInstruction
                 ins.type_change = Environment::BaseDefinedType.new
