@@ -143,6 +143,8 @@ class Houndstooth::Environment
         end
 
         def accepts?(other)
+            return false unless other.is_a?(DefinedType)
+            
             distance = 0
             current = other
             until current.nil?
