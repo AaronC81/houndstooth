@@ -370,9 +370,6 @@ module Houndstooth
         end
 
         # An instruction which assigns the value of `self`.
-        # TODO: How do we know what this is?
-        # Maybe encode the type of `self` in `InstructionBlock` if it introduces a new one (like how
-        # scopes work)
         class SelfInstruction < Instruction
             def to_assembly
                 "#{super}self"
