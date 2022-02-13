@@ -4,7 +4,7 @@ require_relative '../lib/houndstooth'
 options = Optimist::options do
     banner "Houndstooth: A Ruby type checker"
 
-    opt :file, "file to type check", short: :f
+    opt :file, "file to type check", type: :string, short: :f
     opt :code, "code string to type check", type: :string, short: :e
 
     opt :no_stdlib, "don't load stdlib types", short: :s
