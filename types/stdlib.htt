@@ -41,6 +41,9 @@ class Integer < Numeric
     #: (Integer) -> Integer
     #: (Float) -> Float
     def +(other); end
+
+    #: () { (Integer) -> void } -> Integer
+    def times; end
 end
 
 class Float < Numeric
@@ -71,9 +74,9 @@ class Kernel
     #: (Integer) -> Integer
     def self.rand(max=nil); end
 
-    #: (?String) -> void
+    #: (?untyped) -> void
     def self.puts(message=nil); end
 
-    #: (?String) -> void
+    #: (?untyped) -> void
     def self.print(message=nil); end
 end
