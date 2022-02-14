@@ -44,6 +44,10 @@ module Houndstooth
             # @return [<Variable>, nil]
             attr_reader :scope
 
+            # The parameters of this block, if it is a method block or a function definition.
+            # @return [<Variable>, nil]
+            attr_reader :parameters
+
             # The instruction which this block belongs to.
             # @return [Instruction, nil]
             attr_reader :parent
@@ -59,9 +63,10 @@ module Houndstooth
             # @return [DefinedType, nil]
             attr_accessor :self_type_change
 
-            def initialize(instructions: nil, has_scope:, parent:, lexical_context_change: nil, self_type_change: nil)
+            def initialize(instructions: nil, has_scope:, parameters: nil, parent:, lexical_context_change: nil, self_type_change: nil)
                 @instructions = instructions || []
                 @scope = has_scope ? [] : nil
+                @parameters = parameters || []
                 @parent = parent
                 @lexical_context_change = lexical_context_change
                 @self_type_change = self_type_change
@@ -143,7 +148,8 @@ module Houndstooth
                 parent&.block&.lexical_context! or raise "assertion failed: missing lexical context type"
             end
             
-            # Returns the `Variable` instance for a named Ruby local variable, by its identifier.
+            # Returns the `Variable` instance by its Ruby identifier, for either a local variable
+            # or a method block/definition parameter.
             # If the variable isn't present in this scope, it will look up scopes until it is found.
             # If `create` is set, the variable will be created in the closest scope if it doesn't
             # exist.
@@ -159,6 +165,9 @@ module Houndstooth
                     highest_scope = self if highest_scope.nil? 
 
                     var = scope.find { |v| v.ruby_identifier == name }
+                    return var if !var.nil?
+
+                    var = parameters.find { |v| v.ruby_identifier == name }
                     return var if !var.nil?
                 end
 
@@ -177,7 +186,13 @@ module Houndstooth
             end
 
             def to_assembly
-                instructions.map { |ins| ins.to_assembly }.join("\n")
+                ins = instructions.map { |ins| ins.to_assembly }.join("\n")
+
+                if parameters.any?
+                    "| #{parameters.map(&:to_assembly).join(", ")} |\n#{ins}"
+                else
+                    ins
+                end
             end
 
             def walk(&blk)
@@ -329,7 +344,6 @@ module Houndstooth
 
         # A method call on an object.
         class SendInstruction < Instruction
-            # TODO: blocks
             # TODO: splats
 
             # The target of the method call.
@@ -344,6 +358,10 @@ module Houndstooth
             # @return [<Argument>]
             attr_accessor :arguments
 
+            # The block passed to this call.
+            # @return [InstuctionBlock, nil]
+            attr_accessor :method_block
+
             # If true, this isn't really a send, but instead a super call. The `target` and
             # `method_name` of this instance should be ignored.
             # It'll probably be possible to resolve this later, and make it a standard method call,
@@ -351,11 +369,12 @@ module Houndstooth
             # @return [Boolean]
             attr_accessor :super_call
 
-            def initialize(block:, node:, target:, method_name:, arguments: nil, super_call: false)
+            def initialize(block:, node:, target:, method_name:, arguments: nil, method_block: nil, super_call: false)
                 super(block: block, node: node)
                 @target = target
                 @method_name = method_name
                 @arguments = arguments || []
+                @method_block = method_block
                 @super_call = super_call
             end
 
@@ -365,8 +384,8 @@ module Houndstooth
                 if super_call
                     "#{super}send_super #{args}"
                 else
-                    "#{super}send #{target.to_assembly} #{method_name} #{args}"
-                end
+                    "#{super}send #{target.to_assembly} #{method_name} (#{args})"
+                end + (method_block ? " block\n#{assembly_indent(method_block.to_assembly)}\nend" : '')
             end
         end
 

@@ -273,8 +273,7 @@ module Houndstooth::SemanticNode
             end
             
             # Insert send instruction
-            # TODO: block passed to method is ignored
-            block.instructions << I::SendInstruction.new(
+            si = I::SendInstruction.new(
                 block: block,
                 node: self,
                 target: target_variable,
@@ -282,6 +281,42 @@ module Houndstooth::SemanticNode
                 arguments: ins_args,
                 super_call: super_call,
             )
+
+            # Build up method block
+            if self.block
+                si.method_block =
+                    I::InstructionBlock.new(has_scope: true, parent: si).tap do |blk|
+                        params = self.block.parameters
+
+                        if params.optional_parameters.any? ||
+                            params.keyword_parameters.any? ||
+                            params.optional_keyword_parameters.any? ||
+                            params.rest_parameter ||
+                            params.rest_keyword_parameter ||
+                            params.has_forward_parameter ||
+                            params.block_parameter ||
+                            params.only_proc_parameter
+
+                            # Replace call with a nil
+                            Houndstooth::Errors::Error.new(
+                                "Only required positional parameters are supported",
+                                [[ast_node.loc.expression, "unsupported parameters in block"]]
+                            ).push 
+                            blk.instructions << I::LiteralInstruction.new(node: self, block: blk, value: nil)
+                            return
+                        end
+
+                        # Create parameters on this block
+                        params.positional_parameters.each do |name|
+                            blk.parameters << I::Variable.new(name.to_s)
+                        end
+
+                        # Create body
+                        self.block.body.to_instructions(blk)
+                    end
+            end
+
+            block.instructions << si
         end
     end
 

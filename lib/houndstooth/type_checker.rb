@@ -81,6 +81,74 @@ module Houndstooth
                     return
                 end
 
+                # Handle block
+                catch :abort_block do
+                    if sig.block_parameter && ins.method_block
+                        # This method takes a block, and was given one
+                        # Check parameter count
+                        # TODO: this won't work if we support other kinds of parameter
+                        expected_ps = sig.block_parameter.type.positional_parameters
+                        got_ps = ins.method_block.parameters
+                        expected_l = expected_ps.length
+                        got_l = got_ps.length
+                        if expected_l != got_l
+                            Houndstooth::Errors::Error.new(
+                                "Incorrect number of block parameters (expected #{expected_l}, got #{got_l})",
+                                [[ins.node.ast_node.loc.expression, "incorrect parameters"]]
+                            ).push
+                            throw :abort_block
+                        end
+
+                        # Insert an instruction to assign each parameter's type
+                        expected_ps.zip(got_ps).each do |type_param, var|
+                            i = Instructions::AssignExistingInstruction.new(
+                                block: ins.method_block,
+                                node: ins.node,
+                                result: var,
+                                variable: var,
+                            )
+                            i.type_change = type_param.type
+                            ins.method_block.instructions.unshift(i)
+                        end
+
+                        # Recurse type checking into it
+                        process_block(ins.method_block)
+
+                        # Check return type
+                        if !sig.block_parameter.type.return_type.accepts?(ins.method_block.return_type!)
+                            Houndstooth::Errors::Error.new(
+                                "Incorrect return type for block, expected `#{sig.block_parameter.type.return_type.rbs}`",
+                                [[
+                                    ins.method_block.instructions.last.node.ast_node.loc.expression,
+                                    "got `#{ins.method_block.return_type!.rbs}`"
+                                ]]
+                            ).push
+                            throw :abort_block
+                        end
+
+                    elsif sig.block_parameter && !ins.method_block
+                        # This method takes a block, but wasn't given one
+                        # If the block is not optional, error
+                        if !sig.block_parameter.optional?
+                            Houndstooth::Errors::Error.new(
+                                "`#{target_type.rbs}` method `#{ins.method_name}` requires a block, but none was given",
+                                [[ins.node.ast_node.loc.expression, "expected block"]]
+                            ).push
+                        end
+                    elsif !sig.block_parameter && ins.method_block
+                        # This method doesn't take a block, but was given one
+                        # That's not allowed!
+                        # (Well, Ruby allows it, but it doesn't make sense for us - 99% of the time,
+                        # this will be a bug)
+                        if ins.method_block
+                            Houndstooth::Errors::Error.new(
+                                "`#{target_type.rbs}` method `#{ins.method_name}` does not accept a block",
+                                [[ins.node.ast_node.loc.expression, "unexpected block"]]
+                            ).push
+                        end
+                    end
+                end
+
                 # Check for return type special cases
                 case sig.return_type
                 when Environment::SelfType
