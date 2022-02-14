@@ -446,7 +446,8 @@ class Houndstooth::Environment
         def rbs
             params = 
                 [positional_parameters.map(&:rbs), keyword_parameters.map(&:rbs)].flatten.join(", ")
-            "(#{params}) -> #{return_type.rbs}"
+                
+            "(#{params}) #{block_parameter ? "#{block_parameter.rbs} " : ''}-> #{return_type.rbs}"
         end
     end
 
@@ -490,5 +491,9 @@ class Houndstooth::Environment
         end
     end
 
-    class BlockParameter < Parameter; end
+    class BlockParameter < Parameter
+        def rbs
+            "#{optional? ? '?' : ''}{ #{type.rbs} }"
+        end
+    end
 end
