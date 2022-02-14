@@ -4,3 +4,7 @@ gem 'parser'
 gem 'rspec'
 gem 'rbs'
 gem 'optimist'
+
+group :development do
+    gem 'afl', git: 'https://github.com/richo/afl-ruby.git'
+end

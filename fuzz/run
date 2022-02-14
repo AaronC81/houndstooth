@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+if [ -d "$SCRIPTPATH/out/latest" ]
+then
+    echo "out/latest directory already exists!"
+    echo "Delete it to perform another fuzzer run."
+    exit 1
+fi
+
+# gitignored, so a fresh clone won't have this
+mkdir -p "$SCRIPTPATH/out"
+
+AFL_NO_FORKSRV=1 AFL_SKIP_BIN_CHECK=1 \
+    bundle exec afl-fuzz \
+    -i "$SCRIPTPATH/cases" \
+    -o "$SCRIPTPATH/out/latest" \
+    -m 5000 \
+    -x "$SCRIPTPATH/ruby.dict" \
+    -- ruby bin/houndstooth.rb --instrument -f @@

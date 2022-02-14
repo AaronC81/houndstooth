@@ -1,0 +1,59 @@
+# Derived from the Sorbet fuzzer dictionary, with modifications to use Houndstooth type syntax
+
+# keywords
+"begin"
+"end"
+"def"
+"class"
+"module"
+"do"
+"if"
+"else"
+"elsif"
+"until"
+"unless"
+"for"
+"while"
+"rescue"
+"case"
+"when"
+"yield"
+"next"
+"break"
+"return"
+"super"
+"ensure"
+"in"
+"redo"
+"retry"
+
+
+# common values
+"true"
+"false"
+"Integer"
+"String"
+"Array"
+"Numeric"
+"Object"
+"BasicObject"
+"nil"
+
+
+# types
+"self"
+"instance"
+"void"
+"untyped"
+
+
+# interesting stuff
+"new"
+"extend"
+"include"
+"is_a?"
+"self"
+"raise"
+"initialize"
+"&&"
+"||"

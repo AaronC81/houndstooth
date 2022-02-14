@@ -1,3 +1,9 @@
+GIT
+  remote: https://github.com/richo/afl-ruby.git
+  revision: cbaad7a5fadca7b1617a211d571f7badc80fec82
+  specs:
+    afl (0.0.3)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -25,6 +31,7 @@ PLATFORMS
   arm64-darwin-21
 
 DEPENDENCIES
+  afl!
   optimist
   parser
   rbs
