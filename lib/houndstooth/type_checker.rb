@@ -61,9 +61,14 @@ module Houndstooth
                 sig = method.resolve_matching_signature(arguments_with_types)
                 if sig.nil?
                     error_message =
-                        "`#{target_type.rbs}` method `#{ins.method_name}` has no signature matching the given arguments\n" \
-                        "Available signatures are:\n" \
-                        + method.signatures.map { |s| "  - #{s.rbs}" }.join("\n")
+                        "`#{target_type.rbs}` method `#{ins.method_name}` has no signature matching the given arguments\n"
+
+                    if method.signatures.any?
+                        error_message += "Available signatures are:\n" \
+                            + method.signatures.map { |s| "  - #{s.rbs}" }.join("\n")
+                    else
+                        error_message += "Method has no signatures - did you use a #: comment?"
+                    end
 
                     Houndstooth::Errors::Error.new(
                         error_message,
