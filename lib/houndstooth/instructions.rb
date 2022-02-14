@@ -132,14 +132,15 @@ module Houndstooth
             # found.
             def self_type!
                 return self_type_change if self_type_change
-                parent&.block.&self_type! or raise "assertion failed: missing self type"
+                parent&.block&.self_type! or raise "assertion failed: missing self type"
             end
 
             # Looks for the lexical context, here or on a parent block, or throws an exception if
             # not found.
             def lexical_context!
                 return lexical_context_change if lexical_context_change
-                parent&.block.&lexical_context_change! or raise "assertion failed: missing lexical context type"
+
+                parent&.block&.lexical_context! or raise "assertion failed: missing lexical context type"
             end
             
             # Returns the `Variable` instance for a named Ruby local variable, by its identifier.
