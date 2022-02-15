@@ -107,9 +107,7 @@ def main(options)
     # methods, probably, or just ignore definitions? Don't know!
     block = Houndstooth::Instructions::InstructionBlock.new(has_scope: true, parent: nil)
     node.to_instructions(block)
-    block.lexical_context_change = Houndstooth::Environment::BaseDefinedType.new
     env.types["__HoundstoothMain"] = Houndstooth::Environment::DefinedType.new(path: "__HoundstoothMain")
-    block.self_type_change = env.types["__HoundstoothMain"]
     abort_on_error!
 
     if options[:debug_instructions]
@@ -120,7 +118,11 @@ def main(options)
 
     # Type check the instruction block
     checker = Houndstooth::TypeChecker.new(env)
-    checker.process_block(block)
+    checker.process_block(
+        block,
+        lexical_context: Houndstooth::Environment::BaseDefinedType.new,
+        self_type: env.types["__HoundstoothMain"]
+    )
     abort_on_error!
 
     if options[:debug_type_changes]

@@ -9,13 +9,15 @@ RSpec.describe 'integration tests' do
         # Create instruction block
         block = Houndstooth::Instructions::InstructionBlock.new(has_scope: true, parent: nil)
         node.to_instructions(block)
-        block.lexical_context_change = Houndstooth::Environment::BaseDefinedType.new
         env.types["__HoundstoothMain"] = Houndstooth::Environment::DefinedType.new(path: "__HoundstoothMain")
-        block.self_type_change = env.types["__HoundstoothMain"]
 
         # Run type checker
         checker = Houndstooth::TypeChecker.new(env)
-        checker.process_block(block)
+        checker.process_block(
+            block,
+            lexical_context: Houndstooth::Environment::BaseDefinedType.new,
+            self_type: env.types["__HoundstoothMain"]
+        )
 
         # If we're expecting success, throw exception if there was an error
         raise 'unexpected type errors' if expect_success && Houndstooth::Errors.errors.any?

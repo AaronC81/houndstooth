@@ -6,20 +6,20 @@ module Houndstooth
             @env = env
         end
 
-        def process_block(block)
+        def process_block(block, lexical_context:, self_type:)
             block.instructions.each do |ins|
-                process_instruction(ins)
+                process_instruction(ins, lexical_context: lexical_context, self_type: self_type)
             end
         end
 
-        def process_instruction(ins)
+        def process_instruction(ins, lexical_context:, self_type:)
             case ins
             when Instructions::LiteralInstruction
                 assign_type_to_literal_instruction(ins)
             
             when Instructions::ConditionalInstruction
-                process_block(ins.true_branch)
-                process_block(ins.false_branch)
+                process_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type)
+                process_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type)
                 
                 # A conditional could return either of its branches
                 ins.type_change = Environment::UnionType.new([
@@ -117,7 +117,7 @@ module Houndstooth
                         end
 
                         # Recurse type checking into it
-                        process_block(ins.method_block)
+                        process_block(ins.method_block, lexical_context: lexical_context, self_type: self_type)
 
                         # Check return type
                         if !sig.block_parameter.type.return_type.accepts?(ins.method_block.return_type!)
@@ -193,13 +193,31 @@ module Houndstooth
                 ins.type_change = resolved.eigen
 
             when Instructions::SelfInstruction
-                ins.type_change = ins.block.self_type!
+                ins.type_change = self_type
 
             when Instructions::TypeDefinitionInstruction
-                # TODO: just skip over these for now
+                if ins.target
+                    base_type = ins.block.variable_type_at!(ins.target, ins) 
+                else
+                    base_type = lexical_context
+                end
+
+                type_being_defined = env.resolve_type("#{base_type.uneigen}::#{ins.name}").eigen
+
+                process_block(
+                    ins.body,
+                    lexical_context: type_being_defined,
+                    self_type: type_being_defined,
+                )
+                
+                # Returns the just-defined type
+                ins.type_change = type_being_defined
 
             when Instructions::MethodDefinitionInstruction
                 # TODO: also skipped over
+
+                # Returns a symbol of the method's name
+                ins.type_change = env.resolve_type("Symbol")
 
             else
                 raise "internal error: don\'t know how to type check #{ins.class.to_s}"
