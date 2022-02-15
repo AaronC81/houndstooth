@@ -50,6 +50,37 @@ module Houndstooth::SemanticNode
                 target: target,
             )
         end
+
+        def to_instructions(block)
+            if target
+                target.to_instructions(block)
+                target_var = block.instructions.last.result
+            else
+                target_var = nil
+            end
+
+            mdi = I::MethodDefinitionInstruction.new(
+                node: self,
+                block: block,
+                name: name,
+                target: target_var,
+                body: nil,
+            )
+            mdi.body =
+                I::InstructionBlock.new(has_scope: true, parent: mdi).tap do |blk|
+                    if !parameters.add_to_instruction_block(blk)
+                        block.instructions << I::LiteralInstruction.new(node: self, block: block, value: nil)
+                        return
+                    end
+
+                    if body
+                        body.to_instructions(blk)
+                    else
+                        blk.instructions << I::LiteralInstruction.new(node: self, block: block, value: nil)
+                    end
+                end
+            block.instructions << mdi
+        end
     end
 
     module TypeDefinitionMixin

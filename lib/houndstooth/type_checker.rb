@@ -198,6 +198,9 @@ module Houndstooth
             when Instructions::TypeDefinitionInstruction
                 # TODO: just skip over these for now
 
+            when Instructions::MethodDefinitionInstruction
+                # TODO: also skipped over
+
             else
                 raise "internal error: don\'t know how to type check #{ins.class.to_s}"
             end

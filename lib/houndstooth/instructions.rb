@@ -526,5 +526,40 @@ module Houndstooth
                 body.walk(&blk)
             end
         end
+
+        # A definition of a new method.
+        class MethodDefinitionInstruction < Instruction
+            # The name of the item being defined.
+            # @return [Symbol]
+            attr_accessor :name
+
+            # The target on which the method is being defined.
+            # If `nil`, the method is defined on instances of `self`.
+            # @return [Variable, nil]
+            attr_accessor :target
+
+            # The body of this method definition.
+            # @return [InstructionBlock]
+            attr_accessor :body
+
+            def initialize(block:, node:, name:, target:, body:)
+                super(block: block, node: node)
+                @name = name
+                @target = target
+                @body = body
+            end
+
+            def to_assembly
+                super +
+                    "methoddef #{name} on #{target&.to_assembly || '(implicit)'}\n" \
+                    "#{assembly_indent(body.to_assembly)}\n" \
+                    "end"
+            end
+
+            def walk(&blk)
+                super
+                body.walk(&blk)
+            end
+        end
     end
 end
