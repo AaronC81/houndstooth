@@ -153,8 +153,7 @@ module Houndstooth
                 else
                     target = lexical_context
                 end
-                new_type = "#{target.uneigen}::#{ins.name}"
-                resolved = env.resolve_type(new_type)
+                resolved = env.resolve_type(ins.name.to_s, type_context: env.resolve_type(target.uneigen))
 
                 if resolved.nil?
                     Houndstooth::Errors::Error.new(
@@ -217,6 +216,9 @@ module Houndstooth
                 method.signatures.map do |sig|                
                     # Assign parameter types
                     number_of_type_ins = add_parameter_type_instructions(ins, ins.body, sig)
+                    if number_of_type_ins == false
+                        next
+                    end 
 
                     # Recurse into body
                     process_block(
