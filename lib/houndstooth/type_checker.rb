@@ -90,31 +90,9 @@ module Houndstooth
                 catch :abort_block do
                     if sig.block_parameter && ins.method_block
                         # This method takes a block, and was given one
-                        # Check parameter count
-                        # TODO: this won't work if we support other kinds of parameter
-                        expected_ps = sig.block_parameter.type.positional_parameters
-                        got_ps = ins.method_block.parameters
-                        expected_l = expected_ps.length
-                        got_l = got_ps.length
-                        if expected_l != got_l
-                            Houndstooth::Errors::Error.new(
-                                "Incorrect number of block parameters (expected #{expected_l}, got #{got_l})",
-                                [[ins.node.ast_node.loc.expression, "incorrect parameters"]]
-                            ).push
-                            throw :abort_block
-                        end
-
-                        # Insert an instruction to assign each parameter's type
-                        expected_ps.zip(got_ps).each do |type_param, var|
-                            i = Instructions::AssignExistingInstruction.new(
-                                block: ins.method_block,
-                                node: ins.node,
-                                result: var,
-                                variable: var,
-                            )
-                            i.type_change = type_param.type
-                            ins.method_block.instructions.unshift(i)
-                        end
+                        # Add parameter types
+                        throw :abort_block \
+                            if !add_parameter_type_instructions(ins, ins.method_block, sig.block_parameter.type)
 
                         # Recurse type checking into it
                         process_block(ins.method_block, lexical_context: lexical_context, self_type: self_type)
@@ -173,7 +151,7 @@ module Houndstooth
                     # TODO: will only work with types, not actual constants
                     target = ins.block.variable_type_at!(ins.target, ins)
                 else
-                    target = ins.block.lexical_context!
+                    target = lexical_context
                 end
                 new_type = "#{target.uneigen}::#{ins.name}"
                 resolved = env.resolve_type(new_type)
@@ -214,10 +192,64 @@ module Houndstooth
                 ins.type_change = type_being_defined
 
             when Instructions::MethodDefinitionInstruction
-                # TODO: also skipped over
+                # Look up this method in the environment, so we can find its type signature
+                # Where's it defined? The only allowed explicit target currently is `self`, so if
+                # that's given...
+                if !ins.target.nil?
+                    # ...then it's defined on `self`
+                    inner_self_type = self_type
+                    method = inner_self_type.resolve_instance_method(ins.name)
+                else
+                    # Otherwise it's defined on the instance of `self`
+                    inner_self_type = env.resolve_type(self_type.uneigen)
+                    method = inner_self_type.resolve_instance_method(ins.name)
+                end
+
+                # Does it have any signatures?
+                if method.signatures.empty?
+                    Houndstooth::Errors::Error.new(
+                        "No signatures provided",
+                        [[ins.node.ast_node.loc.expression, "no signatures"]]
+                    ).push
+                end
+
+                # Check each signature
+                method.signatures.map do |sig|                
+                    # Assign parameter types
+                    number_of_type_ins = add_parameter_type_instructions(ins, ins.body, sig)
+
+                    # Recurse into body
+                    process_block(
+                        ins.body,
+                        self_type: inner_self_type,
+                        lexical_context: lexical_context,
+                    )
+
+                    # Check return type
+                    if !sig.return_type.accepts?(ins.body.return_type!)
+                        Houndstooth::Errors::Error.new(
+                            "Incorrect return type for method, expected `#{sig.return_type.rbs}`",
+                            [[
+                                ins.body.instructions.last.node.ast_node.loc.expression,
+                                "got `#{ins.body.return_type!.rbs}`"
+                            ]]
+                        ).push
+                    end
+
+                    # If there's more than one, remove type instructions so the next loop can add
+                    # them again
+                    # (We could remove them if there's only one too, but it's handy to leave in for
+                    # debugging)
+                    if method.signatures.length > 1
+                        number_of_type_ins.times { ins.body.instructions.shift }
+                    end
+                end
 
                 # Returns a symbol of the method's name
                 ins.type_change = env.resolve_type("Symbol")
+
+            when Instructions::ToStringInstruction
+                ins.type_change = env.resolve_type("String")
 
             else
                 raise "internal error: don\'t know how to type check #{ins.class.to_s}"
@@ -250,6 +282,45 @@ module Houndstooth
                         [[ins.node.ast_node.loc.expression, "literal"]]
                     ).push
                 end
+        end
+
+        # Inserts instructions into the beginning of block to assign types to a set of parameter
+        # variables.
+        #
+        # @param [Instruction] ins The instruction this is relevant to. Only used for error
+        #   reporting and for the nodes of the new instructions.
+        # @param [InstructionBlock] block The instruction block to prepend the new instructions to.
+        # @param [MethodType] method_type The method type to retrieve parameter types from.
+        # @return [Integer, false] False if an error occurred, otherwise the number of instructions
+        #   added to the beginning.
+        def add_parameter_type_instructions(ins, block, method_type)
+            # Check parameter count
+            # TODO: this won't work if we support other kinds of parameter
+            expected_ps = method_type.positional_parameters
+            got_ps = block.parameters
+            expected_l = expected_ps.length
+            got_l = got_ps.length
+            if expected_l != got_l
+                Houndstooth::Errors::Error.new(
+                    "Incorrect number of parameters (expected #{expected_l}, got #{got_l})",
+                    [[ins.node.ast_node.loc.expression, "incorrect parameters"]]
+                ).push
+                return false
+            end
+
+            # Insert an instruction to assign each parameter's type
+            expected_ps.zip(got_ps).each do |type_param, var|
+                i = Instructions::AssignExistingInstruction.new(
+                    block: block,
+                    node: ins.node,
+                    result: var,
+                    variable: var,
+                )
+                i.type_change = type_param.type
+                block.instructions.unshift(i)
+            end
+
+            expected_ps.length
         end
     end
 end
