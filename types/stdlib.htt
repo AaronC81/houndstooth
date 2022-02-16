@@ -44,12 +44,18 @@ class Integer < Numeric
 
     #: () { (Integer) -> void } -> Integer
     def times; end
+
+    #: () -> Integer
+    def abs; end
 end
 
 class Float < Numeric
     #: (Integer) -> Float
     #: (Float) -> Float
     def +(other); end
+
+    #: () -> Float
+    def abs; end
 end
 
 class String
