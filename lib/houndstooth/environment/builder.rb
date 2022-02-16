@@ -72,7 +72,9 @@ class Houndstooth::Environment
                     new_type.eigen = DefinedType.new(
                         path: "<Eigen:BasicObject>",
                         superclass: PendingDefinedType.new("Class"),
-                        instance_methods: [],
+                        instance_methods: [
+                            SpecialConstructorMethod.new(:new),
+                        ],
                     )
                 end
 

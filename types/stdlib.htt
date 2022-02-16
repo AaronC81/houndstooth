@@ -5,20 +5,19 @@
 class BasicObject
     #: () -> void
     def initialize; end
-
-    #: () -> instance
-    def self.new; end
 end
 
 class Class < Module
     #: () -> Class
     def superclass; end
 
-    #: () -> instance
-    def new; end
-
     #: () -> void
     def initialize; end
+
+    #: () -> Object
+    # Special case of `new` being defined as a method rather than magically - this only affects the
+    # rather rare usage `Class.new.new`, not anything else e.g. `Object.new`
+    def new; end
 end
 
 class Object < BasicObject

@@ -34,7 +34,7 @@ RSpec.describe Houndstooth::Environment do
         ]
 
         cases.each do |type, method, valid|
-            expect(subject.types[type].resolve_instance_method(method)).send(valid ? :not_to : :to, be_nil)
+            expect(subject.types[type].resolve_instance_method(method, subject)).send(valid ? :not_to : :to, be_nil)
         end
     end
 

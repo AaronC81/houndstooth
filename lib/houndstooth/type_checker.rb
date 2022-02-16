@@ -38,7 +38,7 @@ module Houndstooth
                 target_type = ins.block.variable_type_at!(ins.target, ins)
 
                 # Look up method on target
-                method = target_type.resolve_instance_method(ins.method_name)
+                method = target_type.resolve_instance_method(ins.method_name, env)
                 if method.nil?
                     Houndstooth::Errors::Error.new(
                         "`#{target_type.rbs}` has no method named `#{ins.method_name}`",
@@ -197,11 +197,11 @@ module Houndstooth
                 if !ins.target.nil?
                     # ...then it's defined on `self`
                     inner_self_type = self_type
-                    method = inner_self_type.resolve_instance_method(ins.name)
+                    method = inner_self_type.resolve_instance_method(ins.name, env)
                 else
                     # Otherwise it's defined on the instance of `self`
                     inner_self_type = env.resolve_type(self_type.uneigen)
-                    method = inner_self_type.resolve_instance_method(ins.name)
+                    method = inner_self_type.resolve_instance_method(ins.name, env)
                 end
 
                 # Does it have any signatures?

@@ -5,7 +5,7 @@ class Houndstooth::Environment
         #
         # @param [Symbol] method_name
         # @return [Method, nil]
-        def resolve_instance_method(method_name)
+        def resolve_instance_method(method_name, env)
             nil
         end
 
@@ -110,14 +110,35 @@ class Houndstooth::Environment
         # @return [<Method>]
         attr_reader :instance_methods
 
-        def resolve_instance_method(method_name)
+        def resolve_instance_method(method_name, env, top_level: true)
             # Is it available on this type?
-            instance_method = instance_methods.find { _1.name == method_name }
-            return instance_method if instance_method
-
             # If not, check the superclass
             # If there's no superclass, then there is no method to be found, so return nil
-            superclass&.resolve_instance_method(method_name)
+            instance_method = instance_methods.find { _1.name == method_name }
+
+            found = if instance_method
+                instance_method
+            else
+                superclass&.resolve_instance_method(method_name, env, top_level: false)
+            end
+
+            # If the upper chain returned a special constructor method, we need to convert this by
+            # grabbing our instance's `initialize` type
+            if top_level && found && found.is_a?(SpecialConstructorMethod)
+                initialize_sig = env.resolve_type(uneigen).resolve_instance_method(:initialize, env)
+                Method.new(
+                    :new,
+                    initialize_sig.signatures.map do |sig|
+                        # Same parameters, but returns `instance`
+                        new_sig = sig.clone
+                        new_sig.return_type = InstanceType.new
+                        new_sig
+                    end,
+                    const: initialize_sig.const,
+                )
+            else
+                found
+            end
         end
 
         # A path to this type, but with one layer of "eigen-ness" removed from the final element.
@@ -349,7 +370,7 @@ class Houndstooth::Environment
         attr_reader :block_parameter
 
         # @return [Type]
-        attr_reader :return_type
+        attr_accessor :return_type
 
         def initialize(positional: [], keyword: [], rest_positional: nil, rest_keyword: nil, block: nil, return_type: nil)
             super()
@@ -449,6 +470,20 @@ class Houndstooth::Environment
                 
             "(#{params}) #{block_parameter ? "#{block_parameter.rbs} " : ''}-> #{return_type.rbs}"
         end
+    end
+
+    # A special type which can be used in place of a method, typically only `new`. Specifies
+    # that the resolved instance method should actually be taken from an uneigened `initialize`.
+    class SpecialConstructorMethod < Type
+        def initialize(name)
+            @name = name
+        end
+
+        attr_accessor :name
+
+        def rbs
+            "<special constructor '#{name}'>"
+        end 
     end
 
     class Parameter < Type

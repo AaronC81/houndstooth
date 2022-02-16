@@ -232,6 +232,18 @@ RSpec.describe 'integration tests' do
             b = B.new
             x = b.foo + " " + b.bar
         ', 'x') { |t| t == resolve_type("String") }
+
+        # Pulls constructor parameters into `new`
+        check_type_of('
+            class Person
+                #: (String, Integer) -> void
+                def initialize(name, age)
+                    Kernel.puts "Created #{name}, who is #{age}"
+                end
+            end
+
+            x = Person.new("Aaron", 21)
+        ', 'x') { |t| t == resolve_type("Person") }
     end
 
     it 'checks method definitions' do

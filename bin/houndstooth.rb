@@ -93,8 +93,13 @@ def main(options)
             puts t.path
             t.instance_methods.each do |m|
                 puts "  #{m.name}"
-                m.signatures.each do |s|
-                    puts "    #{s.rbs}"
+                # Don't try to print special `new`
+                if m.is_a?(Houndstooth::Environment::SpecialConstructorMethod)
+                    puts "    <special constructor>"
+                else
+                    m.signatures.each do |s|
+                        puts "    #{s.rbs}"
+                    end
                 end
             end
             puts
