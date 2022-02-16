@@ -104,8 +104,8 @@ module Houndstooth
             end
 
             # Identical to `variable_type_at`, but throws an exception on a missing type.
-            def variable_type_at!(...)
-                variable_type_at(...) or raise "assertion failed: missing type"
+            def variable_type_at!(var, ins)
+                variable_type_at(var, ins) or raise "assertion failed: missing type for #{var.to_assembly}"
             end
 
             # Gets the return type of this block - i.e. the type of its last variable assignment.
@@ -117,7 +117,7 @@ module Houndstooth
 
             # Identical to `return_type`, but throws an exception on a missing type.
             def return_type!
-                return_type or raise "assertion failed: missing type"
+                return_type or raise "assertion failed: missing return type"
             end
             
             # Returns the `Variable` instance by its Ruby identifier, for either a local variable
