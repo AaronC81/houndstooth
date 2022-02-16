@@ -93,8 +93,8 @@ class Houndstooth::Environment
                 new_type = DefinedType.new(
                     node: node,
                     path: append_type_and_rel_path(type_context, name),
-                    eigen: PendingDefinedType.new("Module") # TODO: Is this correct?
                 )
+                new_type.eigen.superclass = PendingDefinedType.new("Module")
                 environment.add_type(new_type)
 
                 analyze(node: node.body, type_context: new_type)
