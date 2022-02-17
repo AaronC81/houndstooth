@@ -67,25 +67,25 @@ RSpec.describe Houndstooth::Environment do
         expect(resolve(E::TypeParser.parse_method_type('(String, Object) -> Integer'))).to m(
             E::MethodType,
             positional_parameters: [
-                m(E::PositionalParameter, name: nil, type: m(E::DefinedType, path: "String")),
-                m(E::PositionalParameter, name: nil, type: m(E::DefinedType, path: "Object")),
+                m(E::PositionalParameter, name: nil, type: m(E::TypeInstance, type: m(E::DefinedType, path: "String"))),
+                m(E::PositionalParameter, name: nil, type: m(E::TypeInstance, type: m(E::DefinedType, path: "Object"))),
             ],
-            return_type: m(E::DefinedType, path: "Integer"),
+            return_type: m(E::TypeInstance, type: m(E::DefinedType, path: "Integer")),
         )
 
         expect(E::TypeParser.parse_method_type '(A a, ?B b, *E e, c: C, ?d: D, **F f) -> R').to m(
             E::MethodType,
             positional_parameters: [
-                m(E::PositionalParameter, name: :a, type: m(E::PendingDefinedType, path: "A")),
-                m(E::PositionalParameter, name: :b, type: m(E::PendingDefinedType, path: "B"), optional: true),
+                m(E::PositionalParameter, name: :a, type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "A"))),
+                m(E::PositionalParameter, name: :b, type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "B")), optional: true),
             ],
             keyword_parameters: [
-                m(E::KeywordParameter, name: :c, type: m(E::PendingDefinedType, path: "C")),
-                m(E::KeywordParameter, name: :d, type: m(E::PendingDefinedType, path: "D"), optional: true),
+                m(E::KeywordParameter, name: :c, type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "C"))),
+                m(E::KeywordParameter, name: :d, type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "D")), optional: true),
             ],
-            rest_positional_parameter: m(E::PositionalParameter, name: :e, type: m(E::PendingDefinedType, path: "E")),
-            rest_keyword_parameter: m(E::KeywordParameter, name: :f, type: m(E::PendingDefinedType, path: "F")),
-            return_type: m(E::PendingDefinedType, path: "R"),
+            rest_positional_parameter: m(E::PositionalParameter, name: :e, type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "E"))),
+            rest_keyword_parameter: m(E::KeywordParameter, name: :f, type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "F"))),
+            return_type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "R")),
         )
 
         expect(resolve(E::TypeParser.parse_method_type('() { (Integer) -> Integer } -> void'))).to m(
@@ -96,9 +96,9 @@ RSpec.describe Houndstooth::Environment do
                 type: m(
                     E::MethodType,
                     positional_parameters: [
-                        m(E::PositionalParameter, name: nil, type: m(E::DefinedType, path: "Integer")),
+                        m(E::PositionalParameter, name: nil, type: m(E::TypeInstance, type: m(E::DefinedType, path: "Integer"))),
                     ],
-                    return_type: m(E::DefinedType, path: "Integer"),
+                    return_type: m(E::TypeInstance, type: m(E::DefinedType, path: "Integer")),
                 ),
             ),
             return_type: m(E::VoidType),
@@ -161,7 +161,7 @@ RSpec.describe Houndstooth::Environment do
                 signatures: [m(
                     E::MethodType,
                     positional_parameters: [],
-                    return_type: m(E::PendingDefinedType, path: "String")
+                    return_type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "String")),
                 )],
             )
         )
@@ -174,17 +174,17 @@ RSpec.describe Houndstooth::Environment do
                     E::MethodType,
                     positional_parameters: [m(
                         E::PositionalParameter,
-                        type: m(E::PendingDefinedType, path: "Object"),
+                        type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "Object")),
                     )],
-                    return_type: m(E::PendingDefinedType, path: "Object")
+                    return_type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "Object")),
                 ),
                 m(
                     E::MethodType,
                     positional_parameters: [m(
                         E::PositionalParameter,
-                        type: m(E::PendingDefinedType, path: "String"),
+                        type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "String")),
                     )],
-                    return_type: m(E::PendingDefinedType, path: "String")
+                    return_type: m(E::TypeInstance, type: m(E::PendingDefinedType, path: "String")),
                 ),
             ),
         )
@@ -238,7 +238,7 @@ RSpec.describe Houndstooth::Environment do
             m.resolve_all_pending_types(subject, context: nil)
             m
         end
-        t = ->s{ subject.resolve_type(s) }
+        t = ->s{ subject.resolve_type(s).instantiate }
 
         foo = E::Method.new(:foo, [
             mt.('(String, Numeric) -> Numeric'),

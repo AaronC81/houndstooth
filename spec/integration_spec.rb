@@ -52,21 +52,21 @@ RSpec.describe 'integration tests' do
     end
 
     it 'assigns types literals' do
-        check_type_of('x = 3', 'x') { |t| t == resolve_type('Integer') }
-        check_type_of('x = "hello"', 'x') { |t| t == resolve_type('String') }
-        check_type_of('x = 3.2', 'x') { |t| t == resolve_type('Float') }
-        check_type_of('x = true', 'x') { |t| t == resolve_type('TrueClass') }
-        check_type_of('x = nil', 'x') { |t| t == resolve_type('NilClass') }
+        check_type_of('x = 3', 'x') { |t| t.type == resolve_type('Integer') }
+        check_type_of('x = "hello"', 'x') { |t| t.type == resolve_type('String') }
+        check_type_of('x = 3.2', 'x') { |t| t.type == resolve_type('Float') }
+        check_type_of('x = true', 'x') { |t| t.type == resolve_type('TrueClass') }
+        check_type_of('x = nil', 'x') { |t| t.type == resolve_type('NilClass') }
     end
 
     it 'resolves methods and selects appropriate overloads' do
         # Basic resolution
-        check_type_of('x = (-3).abs', 'x') { |t| t == resolve_type('Integer') }
+        check_type_of('x = (-3).abs', 'x') { |t| t.type == resolve_type('Integer') }
 
         # Overload selection
-        check_type_of('x = 3 + 3', 'x') { |t| t == resolve_type('Integer') }
-        check_type_of('x = 3 + 3.2', 'x') { |t| t == resolve_type('Float') }
-        check_type_of('x = 3.2 + 3', 'x') { |t| t == resolve_type('Float') }
+        check_type_of('x = 3 + 3', 'x') { |t| t.type == resolve_type('Integer') }
+        check_type_of('x = 3 + 3.2', 'x') { |t| t.type == resolve_type('Float') }
+        check_type_of('x = 3.2 + 3', 'x') { |t| t.type == resolve_type('Float') }
 
         # Errors
         check_type_of('x = 3.non_existent_method', expect_success: false) # Method doesn't exist
@@ -98,8 +98,8 @@ RSpec.describe 'integration tests' do
             end
         ', 'x') do |t|
             t.is_a?(E::UnionType) \
-                && t.types.include?(resolve_type("Integer")) \
-                && t.types.include?(resolve_type("String"))
+                && t.types.find { |t| t.type == resolve_type("Integer") } \
+                && t.types.find { |t| t.type == resolve_type("String") }
         end
 
         # Both branches assign to different types
@@ -112,8 +112,8 @@ RSpec.describe 'integration tests' do
             end
         ', 'x') do |t|
             t.is_a?(E::UnionType) \
-                && t.types.include?(resolve_type("Float")) \
-                && t.types.include?(resolve_type("String"))
+                && t.types.find { |t| t.type == resolve_type("Float") } \
+                && t.types.find { |t| t.type == resolve_type("String") }
         end
 
         # Both branches assign to the same type
@@ -124,7 +124,7 @@ RSpec.describe 'integration tests' do
             else
                 x = "goodbye"
             end
-        ', 'x') { |t| t == resolve_type("String") }
+        ', 'x') { |t| t.type == resolve_type("String") }
     end
 
     it 'checks module definitions' do
@@ -143,7 +143,7 @@ RSpec.describe 'integration tests' do
             end
 
             x = A.foo + " " + A.bar
-        ', 'x') { |t| t == resolve_type("String") }
+        ', 'x') { |t| t.type == resolve_type("String") }
 
         # Module methods are available on defined modules
         check_type_of('
@@ -211,7 +211,7 @@ RSpec.describe 'integration tests' do
             end
 
             x = A.new.foo + " " + A.bar
-        ', 'x') { |t| t == resolve_type("String") }
+        ', 'x') { |t| t.type == resolve_type("String") }
 
         # Subclassing
         check_type_of('
@@ -231,7 +231,7 @@ RSpec.describe 'integration tests' do
 
             b = B.new
             x = b.foo + " " + b.bar
-        ', 'x') { |t| t == resolve_type("String") }
+        ', 'x') { |t| t.type == resolve_type("String") }
 
         # Pulls constructor parameters into `new`
         check_type_of('
@@ -243,7 +243,7 @@ RSpec.describe 'integration tests' do
             end
 
             x = Person.new("Aaron", 21)
-        ', 'x') { |t| t == resolve_type("Person") }
+        ', 'x') { |t| t.type == resolve_type("Person") }
     end
 
     it 'checks method definitions' do

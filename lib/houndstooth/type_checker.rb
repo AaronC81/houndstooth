@@ -137,7 +137,7 @@ module Houndstooth
                 when Environment::SelfType
                     ins.type_change = target_type
                 when Environment::InstanceType
-                    ins.type_change = env.resolve_type(target_type.uneigen)
+                    ins.type_change = env.resolve_type(target_type.type.uneigen).instantiate
                 else
                     # No special cases, set result variable to return type
                     ins.type_change = sig.return_type
@@ -167,7 +167,7 @@ module Houndstooth
                     return
                 end
 
-                ins.type_change = resolved.eigen
+                ins.type_change = resolved.eigen.instantiate
 
             when Instructions::SelfInstruction
                 ins.type_change = self_type
@@ -180,15 +180,16 @@ module Houndstooth
                 end
 
                 type_being_defined = env.resolve_type("#{base_type.uneigen}::#{ins.name}").eigen
+                type_being_defined_inst = type_being_defined.instantiate
 
                 process_block(
                     ins.body,
                     lexical_context: type_being_defined,
-                    self_type: type_being_defined,
+                    self_type: type_being_defined_inst,
                 )
                 
                 # Returns the just-defined type
-                ins.type_change = type_being_defined
+                ins.type_change = type_being_defined_inst
 
             when Instructions::MethodDefinitionInstruction
                 # Look up this method in the environment, so we can find its type signature
@@ -200,7 +201,7 @@ module Houndstooth
                     method = inner_self_type.resolve_instance_method(ins.name, env)
                 else
                     # Otherwise it's defined on the instance of `self`
-                    inner_self_type = env.resolve_type(self_type.uneigen)
+                    inner_self_type = env.resolve_type(self_type.type.uneigen).instantiate
                     method = inner_self_type.resolve_instance_method(ins.name, env)
                 end
 
@@ -248,10 +249,10 @@ module Houndstooth
                 end
 
                 # Returns a symbol of the method's name
-                ins.type_change = env.resolve_type("Symbol")
+                ins.type_change = env.resolve_type("Symbol").instantiate
 
             when Instructions::ToStringInstruction
-                ins.type_change = env.resolve_type("String")
+                ins.type_change = env.resolve_type("String").instantiate
 
             else
                 raise "internal error: don\'t know how to type check #{ins.class.to_s}"
@@ -265,19 +266,19 @@ module Houndstooth
             ins.type_change =
                 case ins.value
                 when Integer
-                    env.resolve_type("Integer")
+                    env.resolve_type("Integer").instantiate
                 when Float
-                    env.resolve_type("Float")
+                    env.resolve_type("Float").instantiate
                 when String
-                    env.resolve_type("String")
+                    env.resolve_type("String").instantiate
                 when Symbol
-                    env.resolve_type("Symbol")
+                    env.resolve_type("Symbol").instantiate
                 when TrueClass
-                    env.resolve_type("TrueClass")
+                    env.resolve_type("TrueClass").instantiate
                 when FalseClass
-                    env.resolve_type("FalseClass")
+                    env.resolve_type("FalseClass").instantiate
                 when NilClass
-                    env.resolve_type("NilClass")
+                    env.resolve_type("NilClass").instantiate
                 else
                     Houndstooth::Errors::Error.new(
                         "Internal bug - encountered a literal with an unknown type",

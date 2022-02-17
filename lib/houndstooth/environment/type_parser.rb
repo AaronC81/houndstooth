@@ -72,7 +72,10 @@ class Houndstooth::Environment
                 # property
                 # Just converting to a String with #to_s simplifies things, since it includes the
                 # namespace for us
-                PendingDefinedType.new(rbs_type.name.to_s)
+                TypeInstance.new(
+                    PendingDefinedType.new(rbs_type.name.to_s),
+                    type_arguments: rbs_type.args.map { |t| types_from_rbs(t) }
+                )
 
             when RBS::Types::Bases::Void
                 VoidType.new

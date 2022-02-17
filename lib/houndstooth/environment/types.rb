@@ -54,6 +54,55 @@ class Houndstooth::Environment
         end 
     end
 
+    # Represents type arguments passed with a usage of a type. This doesn't necessarily need to be
+    # an "instance" of a class - "instance" refers to a usage of a type.
+    class TypeInstance < Type
+        def initialize(type, type_arguments: nil)
+            @type = type
+            @type_arguments = type_arguments || []
+        end
+
+        # @return [DefinedType]
+        attr_accessor :type
+
+        # @return [<Type>]
+        attr_reader :type_arguments
+
+        def ==(other)
+            other.is_a?(TypeInstance) \
+                && type == other.type \
+                && type_arguments == other.type_arguments
+        end
+
+        def hash = [type, type_arguments].hash
+
+        def no_args!
+            raise "type arguments not considered yet, fix this later!" if type_arguments.any?
+        end
+
+        def accepts?(other)
+            no_args!
+
+            return false unless other.is_a?(TypeInstance)
+
+            type.accepts?(other.type)
+        end
+
+        def resolve_instance_method(...)
+            no_args!
+            type.resolve_instance_method(...)
+        end
+
+        def resolve_all_pending_types(environment, context: nil)
+            @type = resolve_type_if_pending(type, context, environment)
+        end
+
+        def rbs
+            # TODO: don't show the [] if empty, but handy for early debugging
+            "#{type.rbs}[#{type_arguments.map(&:rbs).join(', ')}]"
+        end
+    end
+
     class PendingDefinedType < Type
         def initialize(path)
             @path = path
@@ -68,11 +117,12 @@ class Houndstooth::Environment
     end
 
     class DefinedType < Type
-        def initialize(path: nil, node: nil, superclass: nil, instance_methods: nil, eigen: :generate)
+        def initialize(path: nil, node: nil, superclass: nil, instance_methods: nil, eigen: :generate, type_parameters: nil)
             @path = path.to_s
             @node = node
             @superclass = superclass
             @instance_methods = instance_methods || []
+            @type_parameters = type_parameters || []
 
             if eigen == :generate
                 @eigen = DefinedType.new(
@@ -88,6 +138,10 @@ class Houndstooth::Environment
             else
                 @eigen = eigen
             end
+        end
+
+        def instantiate(type_arguments = nil)
+            TypeInstance.new(self, type_arguments: type_arguments || [])
         end
 
         # @return [String]
@@ -109,6 +163,9 @@ class Houndstooth::Environment
 
         # @return [<Method>]
         attr_reader :instance_methods
+
+        # @return [<String>]
+        attr_reader :type_parameters
 
         def resolve_instance_method(method_name, env, top_level: true)
             # Is it available on this type?
@@ -229,7 +286,7 @@ class Houndstooth::Environment
                 end
             end
 
-            new_types.uniq!
+            new_types.uniq! { |x| x.hash }
 
             if new_types.length == 1
                 new_types.first
@@ -300,6 +357,19 @@ class Houndstooth::Environment
 
         def rbs
             "untyped"
+        end
+    end
+    
+    # A type which will be replaced by a type argument later.
+    class TypeParameterPlaceholder < Type
+        def initialize(name)
+            @name = name
+        end
+
+        attr_accessor :name
+
+        def rbs
+            name
         end
     end
 
