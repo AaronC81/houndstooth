@@ -128,13 +128,13 @@ def main(options)
         lexical_context: Houndstooth::Environment::BaseDefinedType.new,
         self_type: env.types["__HoundstoothMain"]
     )
-    abort_on_error!
-
+    
     if options[:debug_type_changes]
         puts "--- Inst. Types ---"
         puts block.to_assembly
         puts "-------------------"
     end
+    abort_on_error!
 
     # Yay!
     puts "All good!"
