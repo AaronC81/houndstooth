@@ -12,7 +12,7 @@ module Houndstooth
             end
         end
 
-        def process_instruction(ins, lexical_context:, self_type:)
+        def process_instruction(ins, lexical_context:, self_type:)                        
             case ins
             when Instructions::LiteralInstruction
                 assign_type_to_literal_instruction(ins)
@@ -58,14 +58,14 @@ module Houndstooth
                 end
 
                 # Resolve the best method signature with these
-                sig = method.resolve_matching_signature(arguments_with_types)
+                sig = method.resolve_matching_signature(target_type, arguments_with_types)&.substitute_type_parameters(target_type)
                 if sig.nil?
                     error_message =
                         "`#{target_type.rbs}` method `#{ins.method_name}` has no signature matching the given arguments\n"
 
                     if method.signatures.any?
                         error_message += "Available signatures are:\n" \
-                            + method.signatures.map { |s| "  - #{s.rbs}" }.join("\n")
+                            + method.signatures.map { |s| "  - #{s.substitute_type_parameters(target_type).rbs}" }.join("\n")
                     else
                         error_message += "Method has no signatures - did you use a #: comment?"
                     end
@@ -137,7 +137,7 @@ module Houndstooth
                 when Environment::SelfType
                     ins.type_change = target_type
                 when Environment::InstanceType
-                    ins.type_change = env.resolve_type(target_type.type.uneigen).instantiate
+                    ins.type_change = env.resolve_type(target_type.type.uneigen).instantiate(target_type.type_arguments)
                 else
                     # No special cases, set result variable to return type
                     ins.type_change = sig.return_type
@@ -167,7 +167,40 @@ module Houndstooth
                     return
                 end
 
-                ins.type_change = resolved.eigen.instantiate
+                # Check type parameter numbers (even if the type doesn't have any - we don't want
+                # to allow type arguments when none are expected)
+                el = resolved.type_parameters.length
+                gl = ins.type_arguments.length
+                if el != gl
+                    Houndstooth::Errors::Error.new(
+                        "Insufficient type arguments for `#{ins.name}` (expected #{el}, got #{gl}",
+                        [[ins.node.ast_node.loc.expression, "incorrect number of arguments"]]
+                    ).push
+
+                    # Assign result to untyped so type checking can continue
+                    # TODO: another use for "abandoned" type
+                    ins.type_change = Environment::UntypedType.new
+                    return
+                end
+
+                # Does the type require type parameters?
+                if resolved.type_parameters.any?
+                    # Yep - if the arguments are strings, parse them
+                    type_args = ins.type_arguments.map do |arg|
+                        if arg.is_a?(String)
+                            # TODO: as specified in comment at instruction-generation-time, not ideal
+                            # We don't know about other type arguments, nor the correct context
+                            t = Environment::TypeParser.parse_type(arg)
+                            t.resolve_all_pending_types(env).instantiate
+                        else
+                            arg
+                        end
+                    end
+                else
+                    type_args = []
+                end
+
+                ins.type_change = resolved.eigen.instantiate(type_args)
 
             when Instructions::SelfInstruction
                 ins.type_change = self_type
@@ -214,7 +247,7 @@ module Houndstooth
                 end
 
                 # Check each signature
-                method.signatures.map do |sig|                
+                method.signatures.map do |sig|
                     # Assign parameter types
                     number_of_type_ins = add_parameter_type_instructions(ins, ins.body, sig)
                     if number_of_type_ins == false

@@ -76,21 +76,14 @@ class Houndstooth::Environment
 
         def hash = [type, type_arguments].hash
 
-        def no_args!
-            raise "type arguments not considered yet, fix this later!" if type_arguments.any?
-        end
-
         def accepts?(other)
-            no_args!
-
             return false unless other.is_a?(TypeInstance)
 
             type.accepts?(other.type)
         end
 
-        def resolve_instance_method(...)
-            no_args!
-            type.resolve_instance_method(...)
+        def resolve_instance_method(method_name, env, top_level: true)
+            type.resolve_instance_method(method_name, env, instance: self, top_level: top_level)
         end
 
         def resolve_all_pending_types(environment, context: nil)
@@ -98,8 +91,11 @@ class Houndstooth::Environment
         end
 
         def rbs
-            # TODO: don't show the [] if empty, but handy for early debugging
-            "#{type.rbs}[#{type_arguments.map(&:rbs).join(', ')}]"
+            if type_arguments.any?
+                "#{type.rbs}[#{type_arguments.map(&:rbs).join(', ')}]"
+            else
+                type.rbs
+            end 
         end
     end
 
@@ -167,7 +163,7 @@ class Houndstooth::Environment
         # @return [<String>]
         attr_reader :type_parameters
 
-        def resolve_instance_method(method_name, env, top_level: true)
+        def resolve_instance_method(method_name, env, instance: nil, top_level: true)            
             # Is it available on this type?
             # If not, check the superclass
             # If there's no superclass, then there is no method to be found, so return nil
@@ -176,13 +172,13 @@ class Houndstooth::Environment
             found = if instance_method
                 instance_method
             else
-                superclass&.resolve_instance_method(method_name, env, top_level: false)
+                superclass&.resolve_instance_method(method_name, env, instance: instance, top_level: false)
             end
 
             # If the upper chain returned a special constructor method, we need to convert this by
             # grabbing our instance's `initialize` type
             if top_level && found && found.is_a?(SpecialConstructorMethod)
-                initialize_sig = env.resolve_type(uneigen).resolve_instance_method(:initialize, env)
+                initialize_sig = env.resolve_type(uneigen).resolve_instance_method(:initialize, env, instance: instance)
                 Method.new(
                     :new,
                     initialize_sig.signatures.map do |sig|
@@ -368,6 +364,10 @@ class Houndstooth::Environment
 
         attr_accessor :name
 
+        def accepts?(other)
+            other.is_a?(TypeParameterPlaceholder) && name == other.name
+        end
+
         def rbs
             name
         end
@@ -408,11 +408,12 @@ class Houndstooth::Environment
         # by `Type#accepts?` - the type with the lowest distance over all arguments is returned.
         # If no signatures match, returns nil.
         #
+        # @param [TypeInstance] instance
         # @param [<(Instructions::Argument, Type)>] arguments
         # @return [MethodType, nil]
-        def resolve_matching_signature(arguments)            
+        def resolve_matching_signature(instance, arguments)            
             sigs_with_scores = signatures
-                .map { |sig| [sig, sig.accepts_arguments?(arguments)] }
+                .map { |sig| [sig, sig.substitute_type_parameters(instance).accepts_arguments?(arguments)] }
                 .reject { |_, r| r == false }
 
             if sigs_with_scores.any?
@@ -425,19 +426,19 @@ class Houndstooth::Environment
 
     class MethodType < Type
         # @return [<PositionalParameter>]
-        attr_reader :positional_parameters
+        attr_accessor :positional_parameters
 
         # @return [<KeywordParameter>]
-        attr_reader :keyword_parameters
+        attr_accessor :keyword_parameters
 
         # @return [PositionalParameter, nil]
-        attr_reader :rest_positional_parameter
+        attr_accessor :rest_positional_parameter
 
         # @return [KeywordParameter, nil]
-        attr_reader :rest_keyword_parameter
+        attr_accessor :rest_keyword_parameter
 
         # @return [BlockParameter, nil]
-        attr_reader :block_parameter
+        attr_accessor :block_parameter
 
         # @return [Type]
         attr_accessor :return_type
@@ -532,6 +533,34 @@ class Houndstooth::Environment
             distance_total
         end
 
+        def substitute_type_parameters(instance)
+            # TODO: needs to recurse deeper into e.g. unions, probably best implementing on all
+            # `Type`
+            result = clone
+
+            process = ->(param) do
+                if param.is_a?(TypeParameterPlaceholder)
+                    # Get index of type parameter
+                    index = instance.type.type_parameters.index { |tp| tp == param.name } \
+                        or raise "internal error: no type parameter named #{param.name}"
+
+                    # Replace with type argument, which should be an instance
+                    instance.type_arguments[index] \
+                        or raise "internal error: no type argument for parameter #{param.name} (index #{index}), this should've been checked earlier!"
+                else
+                    param
+                end
+            end
+            result.positional_parameters = result.positional_parameters.map do |param|
+                param = param.clone
+                param.type = process.(param.type)
+                param
+            end
+            result.return_type = process.(result.return_type)
+
+            result
+        end
+
         # TODO: implement accepts?
 
         def rbs
@@ -563,7 +592,7 @@ class Houndstooth::Environment
         attr_reader :name
 
         # @return [Type]
-        attr_reader :type
+        attr_accessor :type
 
         # @return [Boolean]
         attr_reader :optional

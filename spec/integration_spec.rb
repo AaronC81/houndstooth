@@ -329,4 +329,45 @@ RSpec.describe 'integration tests' do
             end
         ', expect_success: false)
     end
+
+    it 'allows usage of type parameters' do
+        check_type_of('
+            #!param T
+            class X
+                #: (T) -> T
+                def identity(obj)
+                    obj
+                end
+            end
+
+            #!arg String
+            x = X.new
+            y = x.identity("Hello")
+        ', 'y') { |t| t.type == resolve_type("String") }
+
+        check_type_of('
+            #!arg String
+            x = Array.new
+        ', 'x') do |t|
+            t.type == resolve_type("Array") \
+                && t.type_arguments.map(&:type) == [resolve_type("String")]
+        end
+
+        check_type_of('
+            #!arg String
+            x = Array.new
+            y = (x << "foo")
+        ', 'y') do |t|
+            t.type == resolve_type("Array") \
+                && t.type_arguments.map(&:type) == [resolve_type("String")]
+        end
+
+        check_type_of('
+            #!arg String
+            x = Array.new
+            x << "foo"
+            x << "bar"
+            y = x[0]
+        ', 'y') { |t| t.type == resolve_type("String") }
+    end
 end

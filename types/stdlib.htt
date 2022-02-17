@@ -67,6 +67,19 @@ end
 
 class Symbol; end
 
+#!param T
+class Array
+    #: (T) -> Array[T]
+    def <<(item); end
+
+    # TODO: should be nilable
+    #: (Integer) -> T
+    def [](index); end
+
+    #: () -> Integer
+    def length; end
+end
+
 # Doesn't actually exist, but we need some kind of boolean type
 class Boolean; end
 class TrueClass < Boolean; end

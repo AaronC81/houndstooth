@@ -10,9 +10,12 @@ module Houndstooth::SemanticNode
         register_ast_converter :const do |ast_node|
             target, name = *ast_node
             target = from_ast(target) if target
+            comments = shift_comments(ast_node)
 
             Constant.new(
                 ast_node: ast_node,
+                comments: comments,
+
                 target: target,
                 name: name,
             )
@@ -26,11 +29,28 @@ module Houndstooth::SemanticNode
                 target_value = block.instructions.last.result
             end
 
+            # TODO: Try to parse these from strings earlier, I just know this is going to end up
+            # causing problem
+            type_arguments = comments
+                .select { |c| c.text.start_with?('#!arg ') }
+                .map do |c|
+                    unless /^#!arg\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$/ === c.text
+                        Houndstooth::Errors::Error.new(
+                            "Malformed #!arg definition",
+                            [[c.loc.expression, "invalid"]]
+                        ).push
+                        return 
+                    end
+
+                    $1
+                end
+
             block.instructions << I::ConstantAccessInstruction.new(
                 block: block,
                 node: self,
                 name: name,
                 target: target_value,
+                type_arguments: type_arguments,
             )
         end
     end

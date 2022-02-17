@@ -65,6 +65,7 @@ class Houndstooth::Environment
                 new_type = DefinedType.new(
                     node: node,
                     path: append_type_and_rel_path(type_context, name),
+                    type_parameters: type_parameter_definitions(node),
                     superclass: superclass ? PendingDefinedType.new(superclass) : nil
                 )
                 
@@ -94,6 +95,7 @@ class Houndstooth::Environment
 
                 new_type = DefinedType.new(
                     node: node,
+                    type_parameters: type_parameter_definitions(node),
                     path: append_type_and_rel_path(type_context, name),
                 )
                 new_type.eigen.superclass = PendingDefinedType.new("Module")
@@ -125,6 +127,10 @@ class Houndstooth::Environment
                     .map do |comment|
                         TypeParser.parse_method_type(
                             comment.text[3...].strip,
+                            type_parameters:
+                                type_context.is_a?(DefinedType) \
+                                    ? type_context.type_parameters
+                                    : nil,
                             method_definition_parameters: node.parameters
                         ) 
                     end
@@ -181,6 +187,23 @@ class Houndstooth::Environment
                     "#{type.path}::#{rel}"
                 end
             end
+        end
+
+        # Given a node, gets any type parameters defined on it.
+        def type_parameter_definitions(node)
+            node.comments
+                .select { |c| c.text.start_with?('#!param ') }
+                .map do |c|
+                    unless /^#!param\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$/ === c.text
+                        Houndstooth::Errors::Error.new(
+                            "Malformed #!param definition",
+                            [[c.loc.expression, "invalid"]]
+                        ).push
+                        return 
+                    end
+
+                    $1
+                end
         end
     end
 end

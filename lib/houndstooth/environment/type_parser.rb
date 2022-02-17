@@ -11,20 +11,35 @@ class Houndstooth::Environment
         #
         # @param [String] input
         # @return [Type]
-        def self.parse_method_type(input, method_definition_parameters: nil)
+        def self.parse_method_type(input, type_parameters: nil, method_definition_parameters: nil)
             types_from_rbs(
                 RBS::Parser.parse_method_type(input),
+                type_parameters: type_parameters,
+                method_definition_parameters: method_definition_parameters
+            )
+        end
+
+        # Same as `parse_method_type`, but parses a singular type, such as `String`.
+        #
+        # @param [String] input
+        # @return [Type]
+        def self.parse_type(input, type_parameters: nil, method_definition_parameters: nil)
+            types_from_rbs(
+                RBS::Parser.parse_type(input),
+                type_parameters: type_parameters,
                 method_definition_parameters: method_definition_parameters
             )
         end
 
         # Converts an RBS type to this project's type model.
-        def self.types_from_rbs(rbs_type, method_definition_parameters: nil)
+        def self.types_from_rbs(rbs_type, type_parameters: nil, method_definition_parameters: nil)
+            type_parameters ||= []
+
             case rbs_type
 
             when RBS::MethodType, RBS::Types::Function
                 conv = ->(klass, name, rbs, opt) do
-                    klass.new(name, types_from_rbs(rbs.type), optional: opt)
+                    klass.new(name, types_from_rbs(rbs.type, type_parameters: type_parameters), optional: opt)
                 end
 
                 # `MethodType` has a `Function` instance in its #type field
@@ -53,7 +68,7 @@ class Houndstooth::Environment
                 rest_keyword_parameter = rbs_type.rest_keywords&.then { |rsk| conv.(KeywordParameter, rsk.name, rsk, false) }
 
                 # Get return type
-                return_type = types_from_rbs(rbs_type.return_type)
+                return_type = types_from_rbs(rbs_type.return_type, type_parameters: type_parameters)
 
                 # TODO: If method definition parameter list given, check that the counts and names
                 # line up (or fill in the names if the definition doesn't have them)
@@ -72,10 +87,14 @@ class Houndstooth::Environment
                 # property
                 # Just converting to a String with #to_s simplifies things, since it includes the
                 # namespace for us
-                TypeInstance.new(
-                    PendingDefinedType.new(rbs_type.name.to_s),
-                    type_arguments: rbs_type.args.map { |t| types_from_rbs(t) }
-                )
+                if type_parameters.include?(rbs_type.name.to_s)
+                    TypeParameterPlaceholder.new(rbs_type.name.to_s)
+                else
+                    TypeInstance.new(
+                        PendingDefinedType.new(rbs_type.name.to_s),
+                        type_arguments: rbs_type.args.map { |t| types_from_rbs(t, type_parameters: type_parameters) }
+                    )
+                end
 
             when RBS::Types::Bases::Void
                 VoidType.new

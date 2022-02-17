@@ -443,14 +443,24 @@ module Houndstooth
             # @return [Symbol]
             attr_accessor :name
 
-            def initialize(block:, node:, name:, target:)
+            # Any type arguments passed alongside this constant access. When initially built, these
+            # may be strings, as the instruction builder doesn't have access to the environment to
+            # parse a type. They will be parsed and resolved to types later.
+            # @return [<String, Type>]
+            attr_accessor :type_arguments
+
+            def initialize(block:, node:, name:, target:, type_arguments: nil)
                 super(block: block, node: node)
                 @name = name
                 @target = target
+                @type_arguments = type_arguments || []
             end
 
             def to_assembly
-                "#{super}const #{target&.to_assembly || '(here)'} #{name}"
+                "#{super}const #{target&.to_assembly || '(here)'} #{name}" \
+                    + (type_arguments.any? ? " typeargs [#{
+                        type_arguments.map { |t| t.is_a?(String) ? "<unparsed> #{t}" : t.rbs }.join(', ')
+                    }]" : '')
             end
         end
 
