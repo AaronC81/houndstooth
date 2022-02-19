@@ -46,6 +46,16 @@ class Houndstooth::Environment
             raise "unimplemented for #{self.class.name}"
         end
 
+        # Returns a copy of this type with any type parameters substituted for their actual values
+        # based on the given instance.
+        #
+        # The returned type could be a partial clone, deep clone, or even not a copy at all (just
+        # `self`) - the implementor makes no guarantees. As such, do NOT modify the returned type.
+        #
+        # @param [TypeInstance] instance
+        # @return [Type]
+        def substitute_type_parameters(instance) = self
+
         # Returns an RBS representation of this type. Subclasses should override this.
         # This will not have the same formatting as the input string this is parsed from.
         # TODO: implement for method types

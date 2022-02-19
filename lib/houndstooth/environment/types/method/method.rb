@@ -27,6 +27,10 @@ class Houndstooth::Environment
             end
         end
 
+        def substitute_type_parameters(instance)
+            raise 'internal error: tried to substitute parameters on a Method; too high in the hierarchy for this to be sensible'
+        end
+
         # Given a set of arguments and their types, resolves and returns the best matching signature
         # of this method.
         #

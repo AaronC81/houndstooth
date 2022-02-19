@@ -26,8 +26,7 @@ class Object < BasicObject
 end
 
 class Module
-    # TODO: needs arrays, which don't exist yet
-    #: () -> untyped
+    #: () -> Array[Module]
     def nesting; end
 end
 
@@ -78,6 +77,9 @@ class Array
 
     #: () -> Integer
     def length; end
+
+    #: () { (T) -> void } -> Array[T]
+    def each; end
 end
 
 # Doesn't actually exist, but we need some kind of boolean type

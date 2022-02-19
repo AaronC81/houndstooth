@@ -14,5 +14,15 @@ class Houndstooth::Environment
         def rbs
             name
         end
+
+        def substitute_type_parameters(instance)
+            # Get index of type parameter
+            index = instance.type.type_parameters.index { |tp| tp == name } \
+                or raise "internal error: somehow no type parameter named #{name}"
+
+            # Replace with type argument, which should be an instance
+            instance.type_arguments[index] \
+                or raise "internal error: somehow no type argument for parameter #{name} (index #{index}), this should've been checked earlier!"        
+        end
     end
 end

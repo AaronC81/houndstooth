@@ -109,31 +109,16 @@ class Houndstooth::Environment
         end
 
         def substitute_type_parameters(instance)
-            # TODO: needs to recurse deeper into e.g. unions, probably best implementing on all
-            # `Type`
-            result = clone
+            clone.tap do |t|
+                t.positional_parameters = t.positional_parameters.map { |p| p.substitute_type_parameters(instance) }
+                t.keyword_parameters = t.keyword_parameters.map { |p| p.substitute_type_parameters(instance) }
 
-            process = ->(param) do
-                if param.is_a?(TypeParameterPlaceholder)
-                    # Get index of type parameter
-                    index = instance.type.type_parameters.index { |tp| tp == param.name } \
-                        or raise "internal error: no type parameter named #{param.name}"
+                t.rest_positional_parameter = t.rest_positional_parameter&.substitute_type_parameters(instance)
+                t.rest_keyword_parameter = t.rest_keyword_parameter&.substitute_type_parameters(instance)
+                t.block_parameter = t.block_parameter&.substitute_type_parameters(instance)
 
-                    # Replace with type argument, which should be an instance
-                    instance.type_arguments[index] \
-                        or raise "internal error: no type argument for parameter #{param.name} (index #{index}), this should've been checked earlier!"
-                else
-                    param
-                end
+                t.return_type = t.return_type.substitute_type_parameters(instance)
             end
-            result.positional_parameters = result.positional_parameters.map do |param|
-                param = param.clone
-                param.type = process.(param.type)
-                param
-            end
-            result.return_type = process.(result.return_type)
-
-            result
         end
 
         # TODO: implement accepts?

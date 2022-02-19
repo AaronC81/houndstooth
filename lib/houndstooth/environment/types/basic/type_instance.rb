@@ -11,7 +11,7 @@ class Houndstooth::Environment
         attr_accessor :type
 
         # @return [<Type>]
-        attr_reader :type_arguments
+        attr_accessor :type_arguments
 
         def ==(other)
             other.is_a?(TypeInstance) \
@@ -33,6 +33,14 @@ class Houndstooth::Environment
 
         def resolve_all_pending_types(environment, context: nil)
             @type = resolve_type_if_pending(type, context, environment)
+            type_arguments.map! { |type| resolve_type_if_pending(type, context, environment) }
+        end
+
+        def substitute_type_parameters(instance)
+            clone.tap do |t|
+                t.type = t.type.substitute_type_parameters(instance)
+                t.type_arguments = t.type_arguments.map { |arg| arg.substitute_type_parameters(instance) }
+            end
         end
 
         def rbs

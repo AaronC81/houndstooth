@@ -36,6 +36,12 @@ class Houndstooth::Environment
             types.map! { |type| resolve_type_if_pending(type, self, environment) }
         end
 
+        def substitute_type_parameters(instance)
+            clone.tap do |t|
+                t.types = t.types.map { |type| type.substitute_type_parameters(instance) }
+            end
+        end
+
         def accepts?(other)
             # Normalise into an array
             if other.is_a?(UnionType)

@@ -21,6 +21,12 @@ class Houndstooth::Environment
         def resolve_all_pending_types(environment, context:)
             @type = resolve_type_if_pending(type, context, environment)
         end
+
+        def substitute_type_parameters(instance)
+            clone.tap do |t|
+                t.type = t.type.substitute_type_parameters(instance)
+            end
+        end
     end
 
     class PositionalParameter < Parameter

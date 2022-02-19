@@ -191,7 +191,15 @@ module Houndstooth
                             # TODO: as specified in comment at instruction-generation-time, not ideal
                             # We don't know about other type arguments, nor the correct context
                             t = Environment::TypeParser.parse_type(arg)
-                            t.resolve_all_pending_types(env).instantiate
+                            t.resolve_all_pending_types(env)
+
+                            # TODO: Ideally this should always return an instance so that we don't
+                            # need to do this
+                            if t.is_a?(Environment::TypeInstance)
+                                t
+                            else
+                                t.instantiate
+                            end
                         else
                             arg
                         end
