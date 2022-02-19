@@ -173,7 +173,7 @@ module Houndstooth
                 gl = ins.type_arguments.length
                 if el != gl
                     Houndstooth::Errors::Error.new(
-                        "Insufficient type arguments for `#{ins.name}` (expected #{el}, got #{gl}",
+                        "Insufficient type arguments for `#{ins.name}` (expected #{el}, got #{gl})",
                         [[ins.node.ast_node.loc.expression, "incorrect number of arguments"]]
                     ).push
 
