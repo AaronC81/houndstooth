@@ -60,24 +60,34 @@ module Houndstooth
                 # Resolve the best method signature with these
                 sig = method.resolve_matching_signature(target_type, arguments_with_types)&.substitute_type_parameters(target_type)
                 if sig.nil?
-                    error_message =
-                        "`#{target_type.rbs}` method `#{ins.method_name}` has no signature matching the given arguments\n"
-
-                    if method.signatures.any?
-                        error_message += "Available signatures are:\n" \
-                            + method.signatures.map { |s| "  - #{s.substitute_type_parameters(target_type).rbs}" }.join("\n")
+                    # Special case - if the node isn't a send, then it's a generated insertion to
+                    # an array
+                    if !ins.node.is_a?(Houndstooth::SemanticNode::Send)
+                        # TODO: improve error
+                        Houndstooth::Errors::Error.new(
+                            "Incorrect type of element in array literal",
+                            [[ins.node.ast_node.loc.expression, "type does not match annotation"]]
+                        ).push
                     else
-                        error_message += "Method has no signatures - did you use a #: comment?"
-                    end
+                        error_message =
+                            "`#{target_type.rbs}` method `#{ins.method_name}` has no signature matching the given arguments\n"
 
-                    Houndstooth::Errors::Error.new(
-                        error_message,
-                        # TODO: feels a bit dodgy
-                        [[ins.node.ast_node.loc.expression, "no matching signature"]] \
-                            + ins.node.arguments.zip(arguments_with_types).map do |node, (_, t)|
-                                [node.node.ast_node.loc.expression, "argument type is `#{t.rbs}`"]
-                            end
-                    ).push
+                        if method.signatures.any?
+                            error_message += "Available signatures are:\n" \
+                                + method.signatures.map { |s| "  - #{s.substitute_type_parameters(target_type).rbs}" }.join("\n")
+                        else
+                            error_message += "Method has no signatures - did you use a #: comment?"
+                        end
+
+                        Houndstooth::Errors::Error.new(
+                            error_message,
+                            # TODO: feels a bit dodgy
+                            [[ins.node.ast_node.loc.expression, "no matching signature"]] \
+                                + ins.node.arguments.zip(arguments_with_types).map do |node, (_, t)|
+                                    [node.node.ast_node.loc.expression, "argument type is `#{t.rbs}`"]
+                                end
+                        ).push
+                    end
 
                     # Assign result to untyped so type checking can continue
                     # TODO: create a special "abandoned" type specifically for this purpose

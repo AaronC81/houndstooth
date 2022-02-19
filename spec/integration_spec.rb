@@ -369,5 +369,18 @@ RSpec.describe 'integration tests' do
             x << "bar"
             y = x[0]
         ', 'y') { |t| t.type == resolve_type("String") }
+
+        check_type_of('
+            #!arg String
+            x = ["foo", "bar", "baz"]
+        ', 'x') do |t|
+            t.type == resolve_type("Array") \
+                && t.type_arguments.map(&:type) == [resolve_type("String")]
+        end
+
+        check_type_of('
+            #!arg String
+            x = ["foo", 3, "baz"]
+        ', expect_success: false)
     end
 end

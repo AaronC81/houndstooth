@@ -136,9 +136,66 @@ module Houndstooth::SemanticNode
         attr_accessor :nodes
 
         register_ast_converter :array do |ast_node|
+            comments = shift_comments(ast_node)
+
             ArrayLiteral.new(
                 ast_node: ast_node,
+                comments: comments,
                 nodes: ast_node.to_a.map { |node| from_ast(node) }
+            )
+        end
+
+        def to_instructions(block)
+            # Translate the array into `Array.new` followed by a sequence of calls to Array#push
+            type_arguments = comments
+                .select { |c| c.text.start_with?('#!arg ') }
+                .map do |c|
+                    unless /^#!arg\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$/ === c.text
+                        Houndstooth::Errors::Error.new(
+                            "Malformed #!arg definition",
+                            [[c.loc.expression, "invalid"]]
+                        ).push
+                        return 
+                    end
+
+                    $1
+                end
+
+            block.instructions << I::ConstantBaseAccessInstruction.new(
+                block: block,
+                node: self,
+            )
+            block.instructions << I::ConstantAccessInstruction.new(
+                block: block,
+                node: self,
+                name: 'Array',
+                target: block.instructions.last.result,
+                type_arguments: type_arguments,
+            )
+            block.instructions << I::SendInstruction.new(
+                block: block,
+                node: self,
+                target: block.instructions.last.result,
+                method_name: :new,
+            )
+            array_var = block.instructions.last.result
+
+            nodes.each do |node|
+                node.to_instructions(block)
+                block.instructions << I::SendInstruction.new(
+                    block: block,
+                    node: node,
+                    target: array_var,
+                    method_name: :<<,
+                    arguments: [I::PositionalArgument.new(block.instructions.last.result)],
+                )
+            end
+
+            block.instructions << I::AssignExistingInstruction.new(
+                block: block,
+                node: self,
+                result: array_var,
+                variable: array_var,
             )
         end
     end
