@@ -8,7 +8,7 @@ options = Optimist::options do
     opt :file, "file to type check", type: :string, short: :f
     opt :code, "code string to type check", type: :string, short: :e
 
-    opt :no_stdlib, "don't load stdlib types", short: :s
+    opt :no_stdlib, "don't load stdlib types (for debugging - almost guaranteed to cause weird problems!)", short: :s
 
     opt :debug_nodes, "print parsed node tree", short: :none
     opt :debug_environment, "print known types and methods", short: :none
