@@ -125,6 +125,28 @@ RSpec.describe 'integration tests' do
                 x = "goodbye"
             end
         ', 'x') { |t| t.type == resolve_type("String") }
+
+        # Blocks *could* execute, changing the type of a variable
+        check_type_of('
+            x = 3
+            #!arg String
+            ["x", "y", "z"].each do |y,|
+                x = y
+            end
+        ', 'x') do |t|
+            t.is_a?(E::UnionType) \
+                && t.types.find { |t| t.type == resolve_type("Integer") } \
+                && t.types.find { |t| t.type == resolve_type("String") }
+        end
+
+        # Blocks which don't affect the variable's type won't change it
+        check_type_of('
+            x = 3
+            #!arg String
+            ["x", "y", "z"].each do |y,|
+                Kernel.puts y
+            end
+        ', 'x') { |t| t.type == resolve_type("Integer") }
     end
 
     it 'checks module definitions' do

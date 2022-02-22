@@ -95,6 +95,19 @@ module Houndstooth
                         return Houndstooth::Environment::UnionType.new([true_t, false_t]).simplify
                     end
 
+                    # If the instruction is a send, and it has a block...
+                    if instructions[index].is_a?(SendInstruction) && instructions[index].method_block
+                        # Check type of variable within block
+                        block_last_ins = instructions[index].method_block.instructions.last
+                        block_t = instructions[index].method_block.variable_type_at(var, block_last_ins)
+
+                        # Check type before this send
+                        before_t = variable_type_at(var, index - 1)
+
+                        # The type is a union of both sides
+                        return Houndstooth::Environment::UnionType.new([before_t, block_t]).simplify
+                    end
+
                     # Move onto the previous instruction
                     index -= 1
                 end
