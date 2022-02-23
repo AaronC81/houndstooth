@@ -7,6 +7,7 @@ module Houndstooth
         end
 
         def process_block(block, lexical_context:, self_type:)
+            block.environment = env
             block.instructions.each do |ins|
                 process_instruction(ins, lexical_context: lexical_context, self_type: self_type)
             end
@@ -18,6 +19,28 @@ module Houndstooth
                 assign_type_to_literal_instruction(ins)
             
             when Instructions::ConditionalInstruction
+                # Special case - did the conditional of this `if` statement come from an `is_a?`
+                # call immediately preceding it?
+                index = ins.block.instructions.index { _1 == ins }
+                if index != 0
+                    last_ins = ins.block.instructions[index - 1]
+                    if last_ins.is_a?(Instructions::SendInstruction) \
+                        && last_ins.method_name == :is_a? \
+                        && last_ins.result == ins.condition \
+                        && last_ins.target.ruby_identifier \
+                        && last_ins.arguments.length == 1
+
+                        # Yep, we just checked the type of a local variable!
+                        # In the true branch, we can refine the type
+                        # What was the argument type? Uneigen it to get the type of the variable
+                        arg_var = last_ins.arguments.first.variable
+                        arg_type = ins.block.variable_type_at!(arg_var, ins)
+                        checked_var_type = env.resolve_type(arg_type.type.uneigen).instantiate
+
+                        ins.true_branch.type_refinements[last_ins.target] = checked_var_type
+                    end
+                end
+
                 process_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type)
                 process_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type)
                 

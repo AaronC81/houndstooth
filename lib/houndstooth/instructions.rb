@@ -48,15 +48,26 @@ module Houndstooth
             # @return [<Variable>, nil]
             attr_reader :parameters
 
+            # Any type refinements introduced exclusively within this block. These will be shadowed
+            # by type changes, and are not considered when e.g. constructing unions from branches.
+            # These are used to implement the "magic" refinement of uncertain types, such as unions.
+            # @return [{Variable => TypeInstance}]
+            attr_reader :type_refinements
+
             # The instruction which this block belongs to.
             # @return [Instruction, nil]
             attr_reader :parent
+
+            # The environment in which this block exists. Only needs to be set during type checking.
+            # @return [Environment]
+            attr_accessor :environment
 
             def initialize(instructions: nil, has_scope:, parameters: nil, parent:)
                 @instructions = instructions || []
                 @scope = has_scope ? [] : nil
                 @parameters = parameters || []
                 @parent = parent
+                @type_refinements = {}
             end
 
             # Returns the type of a variable at a particular instruction, either by reference or
@@ -88,8 +99,10 @@ module Houndstooth
                         tbi = instructions[index].true_branch.instructions.last
                         fbi = instructions[index].false_branch.instructions.last
 
-                        true_t = instructions[index].true_branch.variable_type_at(var, tbi)
-                        false_t = instructions[index].false_branch.variable_type_at(var, fbi)
+                        true_t = instructions[index].true_branch.variable_type_at(var, tbi) \
+                            || environment.resolve_type('::NilClass').instantiate
+                        false_t = instructions[index].false_branch.variable_type_at(var, fbi) \
+                            || environment.resolve_type('::NilClass').instantiate
 
                         # The type is a union of both sides
                         return Houndstooth::Environment::UnionType.new([true_t, false_t]).simplify
@@ -111,6 +124,9 @@ module Houndstooth
                     # Move onto the previous instruction
                     index -= 1
                 end
+
+                # Is there a type refinement for this variable?
+                return type_refinements[var] if type_refinements[var]
                 
                 # Check the parent if we have one
                 parent&.block&.variable_type_at(var, parent, strictly_before: true)
@@ -171,13 +187,15 @@ module Houndstooth
             end
 
             def to_assembly
-                ins = instructions.map { |ins| ins.to_assembly }.join("\n")
-
-                if parameters.any?
-                    "| #{parameters.map(&:to_assembly).join(", ")} |\n#{ins}"
-                else
-                    ins
+                s = instructions.map { |ins| ins.to_assembly }.join("\n")
+                s = "| #{parameters.map(&:to_assembly).join(", ")} |\n#{s}" if parameters.any?
+                if type_refinements.any?
+                    type_refinements.each do |var, type|
+                        s = "refine #{var.to_assembly} -> #{type.rbs}\n#{s}"
+                    end
                 end
+
+                s
             end
 
             def walk(&blk)

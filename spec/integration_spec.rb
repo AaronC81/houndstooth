@@ -471,4 +471,22 @@ RSpec.describe 'integration tests' do
             y = x.name
         ', expect_success: false)
     end
+
+    it 'recognises is_a? to refine types back' do
+        check_type_of('
+            if Kernel.rand > 0.5
+                x = 3
+            else
+                x = "hello"
+            end
+            
+            if x.is_a?(Integer)
+                y = x.abs
+            end
+        ', 'y') do |t|
+            t.is_a?(E::UnionType) \
+                && t.types.find { |t| t.type == resolve_type("Integer") } \
+                && t.types.find { |t| t.type == resolve_type("NilClass") }
+        end
+    end
 end

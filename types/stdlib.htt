@@ -5,6 +5,9 @@
 class BasicObject
     #: () -> void
     def initialize; end
+
+    #: (Class) -> Boolean
+    def is_a?(_); end
 end
 
 class Class < Module

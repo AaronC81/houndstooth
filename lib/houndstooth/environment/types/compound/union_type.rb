@@ -32,6 +32,10 @@ class Houndstooth::Environment
             end
         end
 
+        def resolve_instance_method(method_name, env)
+            env.resolve_type('::BasicObject').resolve_instance_method(method_name, env)
+        end
+
         def resolve_all_pending_types(environment, context: nil)
             types.map! { |type| resolve_type_if_pending(type, self, environment) }
         end
