@@ -9,6 +9,14 @@ class Houndstooth::Environment
             nil
         end
 
+        # Resolves the type of an instance variable by checking this type and its superclasses.
+        # Returns nil if no type could be resolved.
+        # @param [String] name
+        # @return [Type, nil]
+        def resolve_instance_variable(name)
+            nil
+        end
+
         def resolve_all_pending_types(environment, context: nil); end
 
         # If the given type is an instance of `PendingDefinedType`, uses the given environment to

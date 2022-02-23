@@ -6,6 +6,7 @@ class Houndstooth::Environment
             @superclass = superclass
             @instance_methods = instance_methods || []
             @type_parameters = type_parameters || []
+            @type_instance_variables = {}
 
             if eigen == :generate
                 @eigen = DefinedType.new(
@@ -50,6 +51,9 @@ class Houndstooth::Environment
         # @return [<String>]
         attr_reader :type_parameters
 
+        # @return [{String => Type}]
+        attr_reader :type_instance_variables
+
         def resolve_instance_method(method_name, env, instance: nil, top_level: true)            
             # Is it available on this type?
             # If not, check the superclass
@@ -81,6 +85,13 @@ class Houndstooth::Environment
             end
         end
 
+        def resolve_instance_variable(name)
+            var_here = type_instance_variables[name]
+            return var_here if var_here
+
+            superclass&.resolve_instance_variable(name)
+        end
+
         # A path to this type, but with one layer of "eigen-ness" removed from the final element.
         # A bit cursed, but used for constant resolution.
         # @return [String]
@@ -100,6 +111,10 @@ class Houndstooth::Environment
 
             instance_methods.map do |method|
                 method.resolve_all_pending_types(environment, context: self)
+            end
+
+            type_instance_variables.keys.each do |k|
+                type_instance_variables[k] = resolve_type_if_pending(type_instance_variables[k], self, environment)
             end
         end
 

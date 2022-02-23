@@ -79,6 +79,24 @@ class Houndstooth::Environment
                     )
                 end
 
+                # Find instance variable definitions
+                node.comments
+                    .select { |c| c.text.start_with?('#!var ') }
+                    .each do |c|
+                        unless /^#!var\s+(@[a-zA-Z_][a-zA-Z0-9_]*)\s+(.+)\s*$/ === c.text
+                            Houndstooth::Errors::Error.new(
+                                "Malformed #!var definition",
+                                [[c.loc.expression, "invalid"]]
+                            ).push
+                            next 
+                        end
+
+                        var_name = $1
+                        type = $2
+                        
+                        new_type.type_instance_variables[var_name] = TypeParser.parse_type(type)
+                    end
+
                 environment.add_type(new_type)
 
                 analyze(node: node.body, type_context: new_type)

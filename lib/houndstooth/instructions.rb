@@ -556,5 +556,42 @@ module Houndstooth
                 body.walk(&blk)
             end
         end
+
+        class InstanceVariableReadInstruction < Instruction
+            # The name of the instance variable to be read.
+            # @return [String]
+            attr_accessor :name
+
+            def initialize(block:, node:, name:)
+                super(block: block, node: node)
+                @name = name
+            end
+
+            def to_assembly
+                super +
+                    "@read #{name}"
+            end
+        end
+
+        class InstanceVariableWriteInstruction < Instruction
+            # The name of the instance variable to be written to.
+            # @return [String]
+            attr_accessor :name
+
+            # The variable which will be written into the instance variable.
+            # @return [Variable]
+            attr_accessor :value
+
+            def initialize(block:, node:, name:, value:)
+                super(block: block, node: node)
+                @name = name
+                @value = value
+            end
+
+            def to_assembly
+                super +
+                    "@write #{name} #{value.to_assembly}"
+            end
+        end
     end
 end

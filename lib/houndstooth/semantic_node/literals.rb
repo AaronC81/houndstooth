@@ -150,7 +150,7 @@ module Houndstooth::SemanticNode
             type_arguments = comments
                 .select { |c| c.text.start_with?('#!arg ') }
                 .map do |c|
-                    unless /^#!arg\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$/ === c.text
+                    unless /^#!arg\s+(.+)\s*$/ === c.text
                         Houndstooth::Errors::Error.new(
                             "Malformed #!arg definition",
                             [[c.loc.expression, "invalid"]]

@@ -405,4 +405,70 @@ RSpec.describe 'integration tests' do
             x = ["foo", 3, "baz"]
         ', expect_success: false)
     end
+
+    it 'allows usage of instance variables' do
+        check_type_of('
+            #!var @name String
+            class Person
+                #: () -> String
+                def name
+                    @name
+                end
+            end
+
+            x = Person.new.name
+        ', 'x') { |t| t.type == resolve_type('String') }
+
+        check_type_of('
+            #!var @name String
+            class Person
+                #: (String) -> void
+                def name=(n)
+                    @name = n
+                end
+
+                #: () -> String
+                def name
+                    @name
+                end
+            end
+
+            x = Person.new
+            x.name = "Aaron"
+            y = x.name
+        ', 'y') { |t| t.type == resolve_type('String') }
+
+        check_type_of('
+            #!var @name String
+            class Person
+                #: () -> Integer
+                def name
+                    @name
+                end
+            end
+
+            x = Person.new
+            x.name = "Aaron"
+            y = x.name
+        ', expect_success: false)
+
+        check_type_of('
+            #!var @name String
+            class Person
+                #: (Object) -> void
+                def name=(n)
+                    @name = n
+                end
+
+                #: () -> String
+                def name
+                    @name
+                end
+            end
+
+            x = Person.new
+            x.name = "Aaron"
+            y = x.name
+        ', expect_success: false)
+    end
 end

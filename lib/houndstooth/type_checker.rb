@@ -305,6 +305,41 @@ module Houndstooth
             when Instructions::ToStringInstruction
                 ins.type_change = env.resolve_type("String").instantiate
 
+            when Instructions::InstanceVariableReadInstruction
+                var_type = self_type.type.resolve_instance_variable(ins.name)
+                if var_type.nil?
+                    Houndstooth::Errors::Error.new(
+                        "Instance variable #{ins.name} is not defined",
+                        [[ins.node.ast_node.loc.expression, "undefined"]]
+                    ).push
+                    ins.type_change = Environment::UntypedType.new
+                    return
+                end
+
+                ins.type_change = var_type
+
+            when Instructions::InstanceVariableWriteInstruction
+                var_type = self_type.type.resolve_instance_variable(ins.name)
+                if var_type.nil?
+                    Houndstooth::Errors::Error.new(
+                        "Instance variable #{ins.name} is not defined",
+                        [[ins.node.ast_node.loc.expression, "undefined"]]
+                    ).push
+                    ins.type_change = Environment::UntypedType.new
+                    return
+                end
+
+                value_type = ins.block.variable_type_at!(ins.value, ins)
+
+                if !var_type.accepts?(value_type)
+                    Houndstooth::Errors::Error.new(
+                        "Cannot assign `#{value_type.rbs}` to #{ins.name}",
+                        [[ins.node.ast_node.loc.expression, "Expected `#{var_type.rbs}`"]]
+                    ).push
+                end
+
+                ins.type_change = var_type
+
             else
                 raise "internal error: don\'t know how to type check #{ins.class.to_s}"
             end

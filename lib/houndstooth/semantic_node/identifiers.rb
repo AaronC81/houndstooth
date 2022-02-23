@@ -141,6 +141,14 @@ module Houndstooth::SemanticNode
     class InstanceVariable < Base
         extend VariableMixin
         variable_mixin :ivar
+
+        def to_instructions(block)
+            block.instructions << I::InstanceVariableReadInstruction.new(
+                block: block,
+                node: self,
+                name: name.to_s,
+            )
+        end
     end
 
     # Represents a class variable.
@@ -222,9 +230,9 @@ module Houndstooth::SemanticNode
         end
 
         def to_instructions(block)
-            if !target.is_a?(LocalVariable)
+            if !target.is_a?(LocalVariable) && !target.is_a?(InstanceVariable)
                 Houndstooth::Errors::Error.new(
-                    "Only local variables are currently supported",
+                    "Only local or instance variables are currently supported",
                     [[target.ast_node.loc.name, "unsupported kind of variable"]]
                 ).push
 
@@ -233,12 +241,21 @@ module Houndstooth::SemanticNode
             end
 
             value.to_instructions(block)
-            block.instructions << I::AssignExistingInstruction.new(
-                block: block,
-                node: self,
-                variable: block.instructions.last.result,
-                result: block.resolve_local_variable(target.name.to_s, create: true),
-            )
+            if target.is_a?(LocalVariable)
+                block.instructions << I::AssignExistingInstruction.new(
+                    block: block,
+                    node: self,
+                    variable: block.instructions.last.result,
+                    result: block.resolve_local_variable(target.name.to_s, create: true),
+                )
+            else
+                block.instructions << I::InstanceVariableWriteInstruction.new(
+                    block: block,
+                    node: self,
+                    name: target.name.to_s,
+                    value: block.instructions.last.result,
+                )
+            end
         end
     end
 

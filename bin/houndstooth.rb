@@ -91,6 +91,12 @@ def main(options)
         puts "--- Environment ---"
         env.types.each do |_, t|
             puts t.path
+            if t.type_instance_variables.any?
+                puts "  Vars:"
+                t.type_instance_variables.each do |k, v|
+                    puts "    #{k}: #{v.rbs}"
+                end
+            end
             t.instance_methods.each do |m|
                 puts "  #{m.name}"
                 # Don't try to print special `new`
