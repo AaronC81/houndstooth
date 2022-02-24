@@ -1,12 +1,6 @@
 RSpec.describe Houndstooth::Instructions do
     I = Houndstooth::Instructions
 
-    def code_to_block(code)
-        block = I::InstructionBlock.new(has_scope: true, parent: nil)
-        code_to_semantic_node(code).to_instructions(block)
-        block
-    end
-
     it 'can be created from basic literals' do
         # Keywords
         expect(code_to_block("

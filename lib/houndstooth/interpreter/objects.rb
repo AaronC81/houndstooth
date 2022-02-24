@@ -38,6 +38,8 @@ module Houndstooth::Interpreter
                     false
                 when env.resolve_type('::Float')
                     0.0
+                when env.resolve_type('::Symbol')
+                    :""
                 
                 # These always have particular values, so just return immediately and ignore
                 # whatever the value might be set to
@@ -46,7 +48,7 @@ module Houndstooth::Interpreter
                 when env.resolve_type('::FalseClass')
                     return false
                 when env.resolve_type('::TrueClass')
-                    return false
+                    return true
                 
                 else
                     raise 'internal error: tried to unwrapp primitive where type isn\'t primitive'
@@ -57,6 +59,33 @@ module Houndstooth::Interpreter
             else
                 default
             end
+        end
+
+        def self.from_value(value:, env:)
+            case value
+            when Integer
+                t, prim = env.resolve_type('Integer'), [true, value]
+            when String
+                t, prim = env.resolve_type('String'), [true, value]
+            when Float
+                t, prim = env.resolve_type('Float'), [true, value]
+            when Symbol
+                t, prim = env.resolve_type('Symbol'), [true, value]
+            when nil
+                t = env.resolve_type('NilClass')
+            when false
+                t = env.resolve_type('FalseClass')
+            when true
+                t = env.resolve_type('TrueClass')
+            else
+                raise 'internal error: could not convert primitive into instance'
+            end
+
+            new(
+                type: t,
+                env: env,
+                primitive_value: prim,
+            )
         end
 
         def falsey?

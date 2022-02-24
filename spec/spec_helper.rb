@@ -42,3 +42,9 @@ def code_to_semantic_node(code)
     $comments = comments
     Houndstooth::SemanticNode.from_ast(ast_node)
 end
+
+def code_to_block(code)
+    block = I::InstructionBlock.new(has_scope: true, parent: nil)
+    code_to_semantic_node(code).to_instructions(block)
+    block
+end
