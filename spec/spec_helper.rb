@@ -1,3 +1,6 @@
+require 'simplecov'
+SimpleCov.start
+
 require_relative '../lib/houndstooth'
 
 RSpec.configure do |config|
