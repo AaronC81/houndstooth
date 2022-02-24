@@ -62,6 +62,11 @@ class Houndstooth::Environment
             end
         end
     end
+
+    def inspect
+        "#<Houndstooth::Environment (#{types.length} types)>"
+    end
+    alias to_s inspect
 end
 
 require_relative 'environment/types'
