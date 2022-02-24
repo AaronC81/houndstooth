@@ -6,6 +6,7 @@ require_relative 'houndstooth/semantic_node'
 require_relative 'houndstooth/environment'
 require_relative 'houndstooth/stdlib'
 require_relative 'houndstooth/type_checker'
+require_relative 'houndstooth/interpreter'
 
 module Houndstooth
     # Parses a complete file, and adds its type definitions to the given environment.
