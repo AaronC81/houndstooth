@@ -288,4 +288,10 @@ RSpec.describe Houndstooth::Environment do
     it 'can be un-eigened' do
         expect(subject.resolve_type('Object').eigen.uneigen).to eq 'Object'
     end
+
+    it 'parses #!const' do
+        Houndstooth::Stdlib.add_types(subject)
+        meth = subject.resolve_type('Numeric').resolve_instance_method(:+, subject)
+        expect(meth.const).to eq :internal
+    end
 end

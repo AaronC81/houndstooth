@@ -153,6 +153,39 @@ class Houndstooth::Environment
                         ) 
                     end
 
+                # Look for a declaration that this method is const
+                const = nil
+                const_decls = node.comments
+                    .filter { |c| c.text.start_with?('#!const') }
+                    .map { |c| c.text }
+                if const_decls.length == 1
+                    parts = const_decls.first.strip.split
+                    if parts.length != 1 && parts.length != 2
+                        Houndstooth::Errors::Error.new(
+                            "Malformed #!const definition",
+                            [[node.ast_node.loc.expression, "too many parts"]],
+                        ).push
+                    elsif parts[1] && !['required', 'internal', 'required_internal'].include?(parts[1])
+                        Houndstooth::Errors::Error.new(
+                            "Malformed #!const definition",
+                            [[node.ast_node.loc.expression, "don't understand '#{parts[1]}'"]],
+                        ).push
+                    else
+                        if parts[1]
+                            const = parts[1].to_sym
+                        else
+                            const = :normal
+                        end
+                    end
+                elsif const_decls.length == 0
+                    # That's fine, just leave `const` as nil
+                else
+                    Houndstooth::Errors::Error.new(
+                        "Only one #!const comment is allowed",
+                        [[node.ast_node.loc.expression, "multiple #!const comments given"]],
+                    ).push
+                end
+
                 if type_context.nil? || type_context == :root
                     # TODO method definitions should definitely be allowed at the root!
                     Houndstooth::Errors::Error.new(
@@ -163,7 +196,7 @@ class Houndstooth::Environment
                 end
 
                 # TODO: Don't allow methods with duplicate names
-                target.instance_methods << Method.new(name, signatures)
+                target.instance_methods << Method.new(name, signatures, const: const)
             end
         end
 

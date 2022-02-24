@@ -10,9 +10,14 @@ class Houndstooth::Environment
         # @return [Symbol]
         attr_reader :visibility
 
-        # @return [Boolean]
+        # If a symbol, the kind of constness this method has:
+        #   - :normal, defined as user-specified source, can be used anywhere
+        #   - :internal, defined in Houndstooth, can be used anywhere
+        #   - :required, defined as user-specified source, can only be used from a const context
+        #   - :required_internal, defined in Houndstooth, can only be used from a const context
+        # If nil, this method is not const.
+        # @return [Symbol, nil]
         attr_reader :const
-        alias const? const
 
         def initialize(name, signatures = nil, visibility: :public, const: false)
             @name = name

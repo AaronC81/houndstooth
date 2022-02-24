@@ -38,6 +38,7 @@ end
 
 class Numeric
     #: (Numeric) -> Numeric
+    #!const internal
     def +(other); end
 
     #: (Numeric) -> Boolean
