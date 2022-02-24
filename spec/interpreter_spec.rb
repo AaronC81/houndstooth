@@ -71,4 +71,18 @@ RSpec.describe Houndstooth::Interpreter do
             primitive_value: [true, 3]
         )
     end
+
+    it 'can send to const internal methods' do
+        env = Houndstooth::Environment.new
+        Houndstooth::Stdlib.add_types(env)
+
+        block = code_to_block('x = 2 + 3')
+        runtime = Iptr::Runtime.new(env: env)
+        runtime.execute_block(block)
+        obj = runtime.variables[block.resolve_local_variable('x', create: false)]
+        expect(obj).to m(Iptr::InterpreterObject,
+            type: env.resolve_type('Integer'),
+            primitive_value: [true, 5]
+        )
+    end
 end

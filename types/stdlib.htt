@@ -57,6 +57,7 @@ end
 class Integer < Numeric
     #: (Integer) -> Integer
     #: (Float) -> Float
+    #!const internal
     def +(other); end
 
     #: () { (Integer) -> void } -> Integer
@@ -69,6 +70,7 @@ end
 class Float < Numeric
     #: (Integer) -> Float
     #: (Float) -> Float
+    #!const internal
     def +(other); end
 
     #: () -> Float
