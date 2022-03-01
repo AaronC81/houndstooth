@@ -51,7 +51,7 @@ module Houndstooth::Interpreter
                     # Abandon
                     variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
                     return
-                elsif meth.const == :internal || meth.const == :required_internal
+                elsif meth.const_internal?
                     # Look up, call, and set result
                     result_value = const_internal.method_definitions[meth].(target, *args)
                 else

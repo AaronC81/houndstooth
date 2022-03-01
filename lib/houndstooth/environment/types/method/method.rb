@@ -19,6 +19,9 @@ class Houndstooth::Environment
         # @return [Symbol, nil]
         attr_reader :const
 
+        def const_internal?; const == :internal || const == :required_internal; end
+        def const_required?; const == :required || const == :required_internal; end
+
         def initialize(name, signatures = nil, visibility: :public, const: false)
             @name = name
             @signatures = signatures || []
