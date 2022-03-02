@@ -14,6 +14,13 @@ module Houndstooth::Interpreter
             ['::Numeric', '::Integer', '::Float'].each do |t|
                 @method_definitions[env.resolve_type(t).resolve_instance_method(:+, env)] = add     
             end
+
+            # puts and print
+            puts_print = ->(*_) { InterpreterObject.from_value(value: nil, env: env) }
+            kernel = env.resolve_type('::Kernel').eigen
+            [:puts, :print].each do |m|
+                @method_definitions[kernel.resolve_instance_method(m, env)] = puts_print
+            end
         end
 
         # @return [Environment]

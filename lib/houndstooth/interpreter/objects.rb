@@ -95,5 +95,20 @@ module Houndstooth::Interpreter
         def truthy?
             !falsey?
         end
+
+        def inspect
+            result = "#<interpreter object: #{type.rbs}"
+            if primitive_value[0]
+                result += " #{unwrap_primitive_value}"
+            else
+                if instance_variables.any?
+                    result += " #{instance_variables.map { |var, val| "#{var}=#{val}" }}"
+                end
+            end
+            result += ">"
+
+            result
+        end
+        alias to_s inspect
     end
 end

@@ -115,9 +115,11 @@ class Kernel
     #: (Integer) -> Integer
     def self.rand(max=nil); end
 
+    #!const internal
     #: (?untyped) -> void
     def self.puts(message=nil); end
 
+    #!const internal
     #: (?untyped) -> void
     def self.print(message=nil); end
 end

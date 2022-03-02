@@ -41,7 +41,7 @@ module Houndstooth::Interpreter
                         target = target_value.type
                     end
                 else
-                    target = lexical_context.uneigen
+                    target = lexical_context
                 end
                 resolved = env.resolve_type(ins.name.to_s, type_context: env.resolve_type(target.uneigen))
 
@@ -56,7 +56,7 @@ module Houndstooth::Interpreter
                     return
                 end
 
-                result_value = InterpreterObject.new(type: resolved, env: env)
+                result_value = InterpreterObject.new(type: resolved.eigen, env: env)
 
             when Houndstooth::Instructions::TypeDefinitionInstruction
                 if ins.target
@@ -81,8 +81,17 @@ module Houndstooth::Interpreter
                     ),
                 )
 
+                result_value = variables[ins.body.instructions.last.result]
+
+            when Houndstooth::Instructions::MethodDefinitionInstruction
+                # Always const, if their target is (and that'll be checked separately)
+                result_value = InterpreterObject.from_value(value: ins.name, env: env)
+
             when Houndstooth::Instructions::LiteralInstruction
                 result_value = InterpreterObject.from_value(value: ins.value, env: env)
+
+            when Houndstooth::Instructions::SelfInstruction
+                result_value = self_object
 
             when Houndstooth::Instructions::AssignExistingInstruction
                 result_value = variables[ins.variable]
@@ -97,23 +106,11 @@ module Houndstooth::Interpreter
                         raise 'internal error: unimplemented arg should\'ve been caught earlier than interpreter'
                     end
                 end
-                
-                if meth.const.nil?
-                    Houndstooth::Errors::Error.new(
-                        "Cannot call non-const method `#{meth.name}` on `#{target.rbs}` from const context",
-                        [[node.ast_node.loc.expression, 'call is not const']],
-                    ).push
 
-                    # Abandon
-                    variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
-                    return
-                elsif meth.const_internal?
-                    # Look up, call, and set result
-                    result_value = const_internal.method_definitions[meth].(target, *args)
-                else
+                if meth.nil?
                     Houndstooth::Errors::Error.new(
-                        "Unimplemented const type #{meth.const}",
-                        [[node.ast_node.loc.expression, 'unimplemented const type']],
+                        "`#{target}` has no method named `#{ins.method_name}`",
+                        [[ins.node.ast_node.loc.expression, 'no such method']],
                     ).push
 
                     # Abandon
@@ -121,11 +118,78 @@ module Houndstooth::Interpreter
                     return
                 end
                 
+                if meth.const.nil?
+                    Houndstooth::Errors::Error.new(
+                        "Cannot call non-const method `#{meth.name}` on `#{target}` from const context",
+                        [[ins.node.ast_node.loc.expression, 'call is not const']],
+                    ).push
+
+                    # Abandon
+                    variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
+                    return
+                elsif meth.const_internal?
+                    # Look up, call, and set result
+                    begin
+                        result_value = const_internal.method_definitions[meth].(target, *args)
+                    rescue => e
+                        Houndstooth::Errors::Error.new(
+                            "Interpreter runtime error: #{e}",
+                            [[ins.node.ast_node.loc.expression, 'occurred within this call']],
+                        ).push
+
+                        # Abandon
+                        variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
+                        return
+                    end
+                else
+                    Houndstooth::Errors::Error.new(
+                        "Unimplemented const type #{meth.const}",
+                        [[ins.node.ast_node.loc.expression, 'unimplemented const type']],
+                    ).push
+
+                    # Abandon
+                    variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
+                    return
+                end
+                
+            when Houndstooth::Instructions::ConditionalInstruction
+                condition = variables[ins.condition]
+                if condition.truthy?
+                    execute_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type, self_object: self_object)
+                    result_value = variables[ins.true_branch.instructions.last.result]
+                else
+                    execute_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type, self_object: self_object)
+                    result_value = variables[ins.false_branch.instructions.last.result]
+                end
+
             else
                 raise "internal error: don't know how to interpret #{ins.class.name}"
             end
 
             variables[ins.result] = result_value
+        end
+
+        # Finds instructions at the very top level of a program to execute, and executes them. Not
+        # all instructions in the given block will be executed.
+        def execute_from_top_level(block)
+            # Run the interpreter on top-level definitions
+            # TODO: ...and also particular marked top-level sends (see notes in Obsidian)
+            # Because we don't allow definitions to have targets yet, this is fine - any nodes used to
+            # build up to the definition do not matter
+            instructions_to_interpret = []
+            block.instructions.each do |ins|
+                if ins.is_a?(Houndstooth::Instructions::TypeDefinitionInstruction)
+                    instructions_to_interpret << ins
+                end
+            end
+            instructions_to_interpret.each do |ins|
+                execute_instruction(
+                    ins,
+                    self_object: nil, # TODO
+                    self_type: nil, # TODO
+                    lexical_context: Houndstooth::Environment::BaseDefinedType.new,
+                )
+            end
         end
     end
 end

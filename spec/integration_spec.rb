@@ -11,13 +11,20 @@ RSpec.describe 'integration tests' do
         node.to_instructions(block)
         env.types["__HoundstoothMain"] = Houndstooth::Environment::DefinedType.new(path: "__HoundstoothMain")
 
-        # Run type checker
-        checker = Houndstooth::TypeChecker.new(env)
-        checker.process_block(
-            block,
-            lexical_context: Houndstooth::Environment::BaseDefinedType.new,
-            self_type: env.types["__HoundstoothMain"]
-        )
+        # Run the interpreter
+        runtime = Houndstooth::Interpreter::Runtime.new(env: env)
+        runtime.execute_from_top_level(block)
+        
+        # Skip type checking if any errors occured
+        unless Houndstooth::Errors.errors.any?
+            # Run type checker
+            checker = Houndstooth::TypeChecker.new(env)
+            checker.process_block(
+                block,
+                lexical_context: Houndstooth::Environment::BaseDefinedType.new,
+                self_type: env.types["__HoundstoothMain"]
+            )
+        end
 
         # If we're expecting success, throw exception if there was an error
         raise 'unexpected type errors' if expect_success && Houndstooth::Errors.errors.any?

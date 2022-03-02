@@ -127,6 +127,11 @@ def main(options)
         puts "-------------------"
     end
 
+    # Run the interpreter
+    runtime = Houndstooth::Interpreter::Runtime.new(env: env)
+    runtime.execute_from_top_level(block)
+    abort_on_error!
+
     # Type check the instruction block
     checker = Houndstooth::TypeChecker.new(env)
     checker.process_block(
