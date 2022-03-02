@@ -1,6 +1,28 @@
 RSpec.describe Houndstooth::Interpreter do
     Iptr = Houndstooth::Interpreter
 
+    def interpret(code, local=nil)
+        env = Houndstooth::Environment.new
+        Houndstooth::Stdlib.add_types(env)
+
+        Houndstooth.process_file('(test)', code, env)
+
+        block = code_to_block(code)
+        runtime = Iptr::Runtime.new(env: env)
+        runtime.execute_block(
+            block,
+            self_type: nil,
+            self_object: nil,
+            lexical_context: Houndstooth::Environment::BaseDefinedType.new,
+        )
+
+        if local
+            [env, runtime.variables.find { |var, t| var.ruby_identifier == local }[1]]
+        else
+            [env, runtime]
+        end
+    end
+
     it 'can unwrap primitive values' do
         env = Houndstooth::Environment.new
         Houndstooth::Stdlib.add_types(env)
@@ -59,30 +81,26 @@ RSpec.describe Houndstooth::Interpreter do
     end
 
     it 'can execute basic literal evaluations' do
-        env = Houndstooth::Environment.new
-        Houndstooth::Stdlib.add_types(env)
-
-        block = code_to_block('x = 3')
-        runtime = Iptr::Runtime.new(env: env)
-        runtime.execute_block(block)
-        obj = runtime.variables[block.resolve_local_variable('x', create: false)]
-        expect(obj).to m(Iptr::InterpreterObject,
+        env, x = interpret('x = 3', 'x')
+        expect(x).to m(Iptr::InterpreterObject,
             type: env.resolve_type('Integer'),
             primitive_value: [true, 3]
         )
     end
 
     it 'can send to const internal methods' do
-        env = Houndstooth::Environment.new
-        Houndstooth::Stdlib.add_types(env)
-
-        block = code_to_block('x = 2 + 3')
-        runtime = Iptr::Runtime.new(env: env)
-        runtime.execute_block(block)
-        obj = runtime.variables[block.resolve_local_variable('x', create: false)]
-        expect(obj).to m(Iptr::InterpreterObject,
+        env, x = interpret('x = 2 + 3', 'x')
+        expect(x).to m(Iptr::InterpreterObject,
             type: env.resolve_type('Integer'),
             primitive_value: [true, 5]
+        )
+    end
+    
+    it 'recurses into definitions' do
+        env, x = interpret('class X; class Y; x = 3; end; end', 'x')
+        expect(x).to m(Iptr::InterpreterObject,
+            type: env.resolve_type('Integer'),
+            primitive_value: [true, 3]
         )
     end
 end

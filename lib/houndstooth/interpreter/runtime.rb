@@ -17,14 +17,70 @@ module Houndstooth::Interpreter
         # @return [ConstInternal]
         attr_accessor :const_internal
 
-        def execute_block(block)
+        def execute_block(block, lexical_context:, self_type:, self_object:)
             block.instructions.each do |inst|
-                execute_instruction(inst)
+                execute_instruction(inst, lexical_context: lexical_context, self_type: self_type, self_object: self_object)
             end
         end
 
-        def execute_instruction(ins)
+        def execute_instruction(ins, lexical_context:, self_type:, self_object:)
             case ins
+            when Houndstooth::Instructions::ConstantBaseAccessInstruction
+                # There's no object we can use to represent the constant base, so let's go with a 
+                # special symbol - it'll make it very obvious if it's being used somewhere it
+                # shouldn't
+                result_value = :constant_base
+
+            when Houndstooth::Instructions::ConstantAccessInstruction
+                if ins.target
+                    # TODO: will only work with types, not actual constants
+                    target_value = variables[ins.target]
+                    if target_value == :constant_base
+                        target = Houndstooth::Environment::BaseDefinedType.new
+                    else
+                        target = target_value.type
+                    end
+                else
+                    target = lexical_context.uneigen
+                end
+                resolved = env.resolve_type(ins.name.to_s, type_context: env.resolve_type(target.uneigen))
+
+                if resolved.nil?
+                    Houndstooth::Errors::Error.new(
+                        "No constant named `#{ins.name}` on `#{target.rbs}`",
+                        [[ins.node.ast_node.loc.expression, "no such constant"]]
+                    ).push
+
+                    # Abandon
+                    variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
+                    return
+                end
+
+                result_value = InterpreterObject.new(type: resolved, env: env)
+
+            when Houndstooth::Instructions::TypeDefinitionInstruction
+                if ins.target
+                    Houndstooth::Errors::Error.new(
+                        "namespace targets visited by interpreter are not supported",
+                        [[node.ast_node.loc.expression, 'break up "class A::B" into separate definitions']],
+                    ).push
+                end
+
+                # Because it can't be overridden (not yet supported above), we know that the type
+                # is going to be defined on the lexical context
+                type_being_defined = env.resolve_type("#{lexical_context.uneigen}::#{ins.name}").eigen
+                type_being_defined_inst = type_being_defined.instantiate
+
+                execute_block(
+                    ins.body,
+                    lexical_context: type_being_defined,
+                    self_type: type_being_defined_inst,
+                    self_object: InterpreterObject.new(
+                        type: type_being_defined,
+                        env: env,
+                    ),
+                )
+
             when Houndstooth::Instructions::LiteralInstruction
                 result_value = InterpreterObject.from_value(value: ins.value, env: env)
 
