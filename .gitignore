@@ -1,3 +1,4 @@
 playground
 fuzz/out
 coverage
+.DS_Store
