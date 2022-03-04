@@ -61,7 +61,17 @@ def main(options)
     elsif options[:code]
         code = options[:code]
     else
-        Optimist::die("must pass either --file/-f or --code/-e")
+        puts "
+███████▖  ▀██ 
+████████▙▖  ▜ 
+██████▌▜██▄           HOUNDSTOOTH
+██████▌ ▝▜██▖     A Ruby type checker
+▝██▙▖         
+  ▀██▙           -f/--file: Check file
+▙  ▝▜█▌         -e/--code: Check string
+██▄  ▝▌       
+"
+        exit 1
     end
 
     if options[:no_stdlib]
