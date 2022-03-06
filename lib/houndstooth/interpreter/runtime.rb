@@ -132,8 +132,11 @@ module Houndstooth::Interpreter
                     begin
                         result_value = const_internal.method_definitions[meth].(target, *args)
                     rescue => e
+                        raise e if $cli_options[:fatal_interpreter]
+                        
                         Houndstooth::Errors::Error.new(
-                            "Interpreter runtime error: #{e}",
+                            "Interpreter runtime error: #{e}\n       " \
+                            "(run with --fatal-interpreter to exit with backtrace on first error)",
                             [[ins.node.ast_node.loc.expression, 'occurred within this call']],
                         ).push
 

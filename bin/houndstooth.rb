@@ -9,6 +9,7 @@ options = Optimist::options do
     opt :code, "code string to type check", type: :string, short: :e
 
     opt :no_stdlib, "don't load stdlib types (for debugging - almost guaranteed to cause weird problems!)", short: :s
+    opt :fatal_interpreter, "exit on first interpreter error, and print internal backtrace", short: :x
 
     opt :debug_nodes, "print parsed node tree", short: :none
     opt :debug_environment, "print known types and methods", short: :none
