@@ -186,6 +186,7 @@ module Houndstooth::Interpreter
                 end
             end
             instructions_to_interpret.each do |ins|
+                ins.mark_const_considered
                 execute_instruction(
                     ins,
                     self_object: nil, # TODO

@@ -204,6 +204,13 @@ module Houndstooth
                     instruction.walk(&blk)
                 end
             end
+
+            # Recusively marks all instructions of this block as const-considered.
+            def mark_const_considered
+                walk do |item|
+                    item.const_considered = true if item.is_a?(Instruction)
+                end
+            end
         end 
 
         # A minimal instruction in a sequence, translated from Ruby code.
@@ -227,24 +234,48 @@ module Houndstooth
             # the type changes on the two conditional branches).
             # @return [Type, nil]
             attr_accessor :type_change
+
+            # If true, this instruction was observed by the interpreter, and could have been 
+            # executed given the correct control flow path.
+            # Used for checking the constraints of const-required methods later in the type checker.
+            attr_accessor :const_considered
+            alias const_considered? const_considered
             
             def initialize(block:, node:, type_change: nil, generate_result: true)
                 @block = block
                 @node = node
                 @result = generate_result ? Variable.new : nil
                 @type_change = type_change
+                @const_considered = false
             end
             
             def to_assembly
-                return "#{result.to_assembly}" \
+                return "#{verbose_assembly_prefix}#{result.to_assembly}" \
                     + (self.type_change ? " -> #{self.type_change.rbs}" : "") \
                     + " = " \
                     # Print ????? if not overridden
                     + (self.class == Instruction ? "?????" : "")
             end
 
+            def verbose_assembly_prefix
+                if $cli_options[:verbose_instructions]
+                    cc_prefix = const_considered ? '[cc] ' : ''
+                    loc = node.ast_node.loc.expression
+                    "#{cc_prefix}[at #{loc.source_buffer.name}:#{loc.line}:#{loc.column}] "
+                else
+                    ''
+                end
+            end
+
             def walk(&blk)
                 blk.(self)
+            end
+
+            # Marks this instruction, and any child blocks recursively, as const-considered.
+            def mark_const_considered
+                walk do |item|
+                    item.const_considered = true if item.is_a?(Instruction)
+                end
             end
 
             protected

@@ -15,6 +15,7 @@ options = Optimist::options do
     opt :debug_environment, "print known types and methods", short: :none
     opt :debug_instructions, "print generated instructions", short: :none
     opt :debug_type_changes, "print instructions after type changes", short: :none
+    opt :verbose_instructions, "show more detail in instruction debug views", short: :none
 
     opt :instrument, "AFL instrumentation", short: :none
 end
