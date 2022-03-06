@@ -207,8 +207,8 @@ module Houndstooth
 
             # Recusively marks all instructions of this block as const-considered.
             def mark_const_considered
-                walk do |item|
-                    item.const_considered = true if item.is_a?(Instruction)
+                instructions.each do |ins|
+                    ins.mark_const_considered
                 end
             end
         end 
@@ -271,11 +271,9 @@ module Houndstooth
                 blk.(self)
             end
 
-            # Marks this instruction, and any child blocks recursively, as const-considered.
+            # Marks this instruction, and any child blocks recursively, as const-considered.  
             def mark_const_considered
-                walk do |item|
-                    item.const_considered = true if item.is_a?(Instruction)
-                end
+                self.const_considered = true
             end
 
             protected
@@ -485,6 +483,12 @@ module Houndstooth
                 true_branch.walk(&blk)
                 false_branch.walk(&blk)
             end
+
+            def mark_const_considered
+                super
+                true_branch.mark_const_considered
+                false_branch.mark_const_considered
+            end
         end
 
         # An access of the base constant value. For example, `::A` accesses `A` from the base.
@@ -569,6 +573,11 @@ module Houndstooth
                 super
                 body.walk(&blk)
             end
+
+            def mark_const_considered
+                super
+                body.mark_const_considered
+            end
         end
 
         # A definition of a new method.
@@ -603,6 +612,12 @@ module Houndstooth
             def walk(&blk)
                 super
                 body.walk(&blk)
+            end
+
+            def mark_const_considered
+                # We _don't_ walk into the body here! The interpreter won't visit the body
+                # (TODO: What about when the user can define their own const-required methods?)
+                super
             end
         end
 
