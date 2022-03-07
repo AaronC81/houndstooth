@@ -16,10 +16,15 @@ module Houndstooth::Interpreter
             end
 
             # puts and print
-            puts_print = ->(*_) { InterpreterObject.from_value(value: nil, env: env) }
+            nil_method = ->(*_) { InterpreterObject.from_value(value: nil, env: env) }
             kernel = env.resolve_type('::Kernel').eigen
             [:puts, :print].each do |m|
-                @method_definitions[kernel.resolve_instance_method(m, env)] = puts_print
+                @method_definitions[kernel.resolve_instance_method(m, env)] = nil_method
+            end
+
+            # Various env-changing methods are a no-op for now
+            [:attr_reader, :private, :protected].each do |m|
+                @method_definitions[env.resolve_type('::Class').eigen.resolve_instance_method(m, env)] = nil_method
             end
         end
 

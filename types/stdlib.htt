@@ -21,6 +21,20 @@ class Class < Module
     # Special case of `new` being defined as a method rather than magically - this only affects the
     # rather rare usage `Class.new.new`, not anything else e.g. `Object.new`
     def new; end
+
+    #: (Symbol) -> void
+    #!const required_internal
+    def attr_reader(name); end
+
+    # TODO: Method visibility setters are only supported in their argument-taking form
+    
+    #: (Symbol) -> void
+    #!const required_internal
+    def private(name); end
+
+    #: (Symbol) -> void
+    #!const required_internal
+    def protected(name); end
 end
 
 class Object < BasicObject
