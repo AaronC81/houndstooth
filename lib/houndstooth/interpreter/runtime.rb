@@ -130,7 +130,9 @@ module Houndstooth::Interpreter
                 elsif meth.const_internal?
                     # Look up, call, and set result
                     begin
-                        result_value = const_internal.method_definitions[meth].(target, *args)
+                        definition = const_internal.method_definitions[meth]
+                        raise "internal error: `#{meth.name}` on `#{target}` is missing const-internal definition" if definition.nil?
+                        result_value = definition.(target, *args)
                     rescue => e
                         raise e if $cli_options[:fatal_interpreter]
                         
