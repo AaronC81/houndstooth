@@ -175,6 +175,14 @@ module Houndstooth
                     # No special cases, set result variable to return type
                     ins.type_change = sig.return_type
                 end
+                
+                # If this method is const-required, check that the call was const-considered
+                if method.const_required? && !ins.const_considered?
+                    Houndstooth::Errors::Error.new(
+                        "`#{target_type.rbs}` method `#{ins.method_name}` is const-required, but this call is not within a const context",
+                        [[ins.node.ast_node.loc.expression, "call outside a const context"]]
+                    ).push
+                end
 
             when Instructions::ConstantBaseAccessInstruction
                 ins.type_change = Environment::BaseDefinedType.new

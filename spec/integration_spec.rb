@@ -1,5 +1,7 @@
 RSpec.describe 'integration tests' do
     def check_type_of(code, variable=nil, expect_success: true, &blk)
+        $cli_options = {}
+
         # Prepare environment
         env = Houndstooth::Environment.new
         Houndstooth.process_file('stdlib.htt', File.read(File.join(__dir__, '..', 'types', 'stdlib.htt')), env)
@@ -495,5 +497,33 @@ RSpec.describe 'integration tests' do
                 && t.types.find { |t| t.type == resolve_type("Integer") } \
                 && t.types.find { |t| t.type == resolve_type("NilClass") }
         end
+    end
+
+    it 'checks that const-required calls are used in const contexts' do
+        # Call to const-required-internal from type definition body
+        check_type_of('
+            class X
+                #: () -> String
+                def foo
+                    "foo"
+                end
+
+                private :foo
+            end
+        ')
+
+        # Call from non-const context
+        check_type_of('
+            class X
+                #: () -> String
+                def foo
+                    "foo"
+                end
+
+                if Kernel.rand > 0.5
+                    private :foo
+                end
+            end
+        ', expect_success: false)
     end
 end
