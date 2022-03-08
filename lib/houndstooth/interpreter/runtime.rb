@@ -84,7 +84,12 @@ module Houndstooth::Interpreter
                 result_value = variables[ins.body.instructions.last.result]
 
             when Houndstooth::Instructions::MethodDefinitionInstruction
-                # Always const, if their target is (and that'll be checked separately)
+                method, _ = ins.resolve_method_and_type(self_type, env)
+
+                # Associate instruction block with environment
+                method.instruction_block = ins.body
+                
+                # Return name of defined method
                 result_value = InterpreterObject.from_value(value: ins.name, env: env)
 
             when Houndstooth::Instructions::LiteralInstruction
@@ -127,7 +132,9 @@ module Houndstooth::Interpreter
                     # Abandon
                     variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
                     return
-                elsif meth.const_internal?
+                end
+                
+                if meth.const_internal?
                     # Look up, call, and set result
                     begin
                         definition = const_internal.method_definitions[meth]
@@ -147,14 +154,57 @@ module Houndstooth::Interpreter
                         return
                     end
                 else
-                    Houndstooth::Errors::Error.new(
-                        "Unimplemented const type #{meth.const}",
-                        [[ins.node.ast_node.loc.expression, 'unimplemented const type']],
-                    ).push
+                    # Check there's actually a definition
+                    if meth.instruction_block.nil?
+                        Houndstooth::Errors::Error.new(
+                            "`#{meth.name}` on `#{target}` has not been defined yet",
+                            [[ins.node.ast_node.loc.expression, 'no definition of method called here']],
+                        ).push
 
-                    # Abandon
-                    variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
-                    return
+                        # Abandon
+                        variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
+                        return
+                    end
+
+                    # Create a new runtime frame to call this method
+                    child_runtime = Runtime.new(env: env)
+
+                    # Populate arguments
+                    if ins.arguments.length != meth.instruction_block.parameters.length
+                        Houndstooth::Errors::Error.new(
+                            "Wrong number of arguments to interpreter method call",
+                            [[ins.node.ast_node.loc.expression, "got #{ins.arguments.length}, expected #{meth.instruction_block.parameters.length}"]],
+                        ).push
+
+                        # Abandon
+                        variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
+                        return
+                    end
+
+                    ins.arguments.zip(meth.instruction_block.parameters).each do |arg, param_var|
+                        unless arg.is_a?(Houndstooth::Instructions::PositionalArgument)
+                            Houndstooth::Errors::Error.new(
+                                "Unsupported argument type used - only positional arguments are supported",
+                                [[ins.node.ast_node.loc.expression, 'unsupported']],
+                            ).push
+
+                            # Abandon
+                            variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
+                            return
+                        end
+
+                        # Inject variables into the runtime to set
+                        child_runtime.variables[param_var] = variables[arg.variable]
+                    end
+                    
+                    # Execute body and set return value
+                    child_runtime.execute_block(
+                        meth.instruction_block,
+                        lexical_context: nil,
+                        self_object: target,
+                        self_type: target.type,
+                    )
+                    result_value = child_runtime.variables[meth.instruction_block.instructions.last.result]
                 end
                 
             when Houndstooth::Instructions::ConditionalInstruction

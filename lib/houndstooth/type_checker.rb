@@ -284,18 +284,7 @@ module Houndstooth
                 ins.type_change = type_being_defined_inst
 
             when Instructions::MethodDefinitionInstruction
-                # Look up this method in the environment, so we can find its type signature
-                # Where's it defined? The only allowed explicit target currently is `self`, so if
-                # that's given...
-                if !ins.target.nil?
-                    # ...then it's defined on `self`
-                    inner_self_type = self_type
-                    method = inner_self_type.resolve_instance_method(ins.name, env)
-                else
-                    # Otherwise it's defined on the instance of `self`
-                    inner_self_type = env.resolve_type(self_type.type.uneigen).instantiate
-                    method = inner_self_type.resolve_instance_method(ins.name, env)
-                end
+                method, inner_self_type = ins.resolve_method_and_type(self_type, env)
 
                 # Does it have any signatures?
                 if method.signatures.empty?

@@ -16,6 +16,10 @@ RSpec.describe Houndstooth::Interpreter do
             lexical_context: Houndstooth::Environment::BaseDefinedType.new,
         )
 
+        if Houndstooth::Errors.errors.any?
+            raise "Errors occurred during interpretation:\n#{Houndstooth::Errors.errors.map(&:format).join("\n")}"
+        end
+
         if local
             [env, runtime.variables.find { |var, t| var.ruby_identifier == local }[1]]
         else
@@ -101,6 +105,65 @@ RSpec.describe Houndstooth::Interpreter do
         expect(x).to m(Iptr::InterpreterObject,
             type: env.resolve_type('Integer'),
             primitive_value: [true, 3]
+        )
+    end
+
+    it 'can call const methods defined in Ruby' do
+        # No parameters
+        env, x = interpret('
+            module X
+                #: () -> Integer
+                #!const
+                def self.good_enough_pi
+                    3
+                end
+            end
+            
+            x = X.good_enough_pi
+        ', 'x')
+        expect(x).to m(Iptr::InterpreterObject,
+            type: env.resolve_type('Integer'),
+            primitive_value: [true, 3]
+        )
+
+        # Parameters
+        env, x = interpret('
+            module X
+                #: (Integer, Integer) -> Integer
+                #!const
+                def self.add_two(x, y)
+                    x + y
+                end
+            end
+            
+            x = X.add_two(2, 3)
+        ', 'x')
+        expect(x).to m(Iptr::InterpreterObject,
+            type: env.resolve_type('Integer'),
+            primitive_value: [true, 5]
+        )
+
+        # Working `self`
+        env, x = interpret('
+            module X
+                #: (Integer, Integer, Integer) -> Integer
+                #!const
+                def self.add_three(x, y, z)
+                    add_two(add_two(x, y), z)
+                end
+
+                #: (Integer, Integer) -> Integer
+                #!const
+                def self.add_two(x, y)
+                    x + y
+                end
+            end
+
+            x = X.add_three(1, 2, 3)
+        ', 'x')
+        expect(x).to m(Iptr::InterpreterObject,
+            type: env.resolve_type('Integer'),
+            primitive_value: [true, 6]
         )
     end
 end

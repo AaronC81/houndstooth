@@ -23,6 +23,10 @@ class Houndstooth::Environment
         def const_internal?; const == :internal || const == :required_internal; end
         def const_required?; const == :required || const == :required_internal; end
 
+        # The instruction block which implements this method.
+        # @return [InstructionBlock]
+        attr_accessor :instruction_block
+
         def initialize(name, signatures = nil, visibility: :public, const: false)
             @name = name
             @signatures = signatures || []

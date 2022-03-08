@@ -619,6 +619,25 @@ module Houndstooth
                 # (TODO: What about when the user can define their own const-required methods?)
                 super
             end
+
+            # Given a self type, resolves the method in the environment which is being defined here,
+            # and the type on which the method is defined.
+            def resolve_method_and_type(self_type, env)
+                # Look up this method in the environment
+                # Where's it defined? The only allowed explicit target currently is `self`, so if
+                # that's given...
+                if !target.nil?
+                    # ...then it's defined on `self`
+                    inner_self_type = self_type
+                    method = inner_self_type.resolve_instance_method(name, env)
+                else
+                    # Otherwise it's defined on the instance of `self`
+                    inner_self_type = env.resolve_type(self_type.type.uneigen).instantiate
+                    method = inner_self_type.resolve_instance_method(name, env)
+                end
+
+                [method, inner_self_type]
+            end
         end
 
         class InstanceVariableReadInstruction < Instruction
