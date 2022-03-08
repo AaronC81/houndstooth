@@ -66,9 +66,12 @@ class Houndstooth::Environment
 
         # Returns an RBS representation of this type. Subclasses should override this.
         # This will not have the same formatting as the input string this is parsed from.
-        # TODO: implement for method types
         def rbs
             "???"
         end 
+
+        def instantiate(type_arguments = nil)
+            TypeInstance.new(self, type_arguments: type_arguments || [])
+        end
     end
 end

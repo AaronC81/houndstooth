@@ -241,7 +241,7 @@ module Houndstooth
                             # TODO: as specified in comment at instruction-generation-time, not ideal
                             # We don't know about other type arguments, nor the correct context
                             t = Environment::TypeParser.parse_type(arg)
-                            t.resolve_all_pending_types(env)
+                            t.resolve_all_pending_types(env, context: nil)
 
                             # TODO: Ideally this should always return an instance so that we don't
                             # need to do this

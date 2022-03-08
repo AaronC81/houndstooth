@@ -24,10 +24,6 @@ class Houndstooth::Environment
             end
         end
 
-        def instantiate(type_arguments = nil)
-            TypeInstance.new(self, type_arguments: type_arguments || [])
-        end
-
         # @return [String]
         attr_reader :path
 

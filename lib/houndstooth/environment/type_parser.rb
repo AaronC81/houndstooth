@@ -37,14 +37,14 @@ class Houndstooth::Environment
 
             case rbs_type
 
-            when RBS::MethodType, RBS::Types::Function
+            when RBS::MethodType, RBS::Types::Function, RBS::Types::Proc
                 conv = ->(klass, name, rbs, opt) do
                     klass.new(name, types_from_rbs(rbs.type, type_parameters: type_parameters), optional: opt)
                 end
 
                 # `MethodType` has a `Function` instance in its #type field
                 # It also has a block, whereas `Function` does not
-                if rbs_type.is_a?(RBS::MethodType)
+                if rbs_type.is_a?(RBS::MethodType) || rbs_type.is_a?(RBS::Types::Proc)
                     # Get block parameter
                     block_parameter = rbs_type.block&.then { |bp| conv.(BlockParameter, nil, bp, !bp.required) }
 
@@ -52,7 +52,7 @@ class Houndstooth::Environment
                     rbs_type = rbs_type.type
                 else
                     block_parameter = nil
-                end 
+                end
                 
                 # Build up lists of positional and keyword parameters
                 positional_parameters =
