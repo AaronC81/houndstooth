@@ -19,6 +19,7 @@ class Houndstooth::Environment
         # @return [Symbol, nil]
         attr_reader :const
 
+        def const?; !const.nil?; end
         def const_internal?; const == :internal || const == :required_internal; end
         def const_required?; const == :required || const == :required_internal; end
 

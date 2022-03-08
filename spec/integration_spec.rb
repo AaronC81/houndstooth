@@ -24,7 +24,8 @@ RSpec.describe 'integration tests' do
             checker.process_block(
                 block,
                 lexical_context: Houndstooth::Environment::BaseDefinedType.new,
-                self_type: env.types["__HoundstoothMain"]
+                self_type: env.types["__HoundstoothMain"],
+                const_context: false,
             )
         end
 
@@ -522,6 +523,51 @@ RSpec.describe 'integration tests' do
 
                 if Kernel.rand > 0.5
                     private :foo
+                end
+            end
+        ', expect_success: false)
+    end
+
+    it 'checks that const methods call other only other const methods' do        
+        # Valid - calls only const-internal methods
+        check_type_of('
+            class X
+                #: (Integer, Integer) -> Integer
+                #!const
+                def add_two(x, y)
+                    x + y
+                end
+            end
+
+            x = X.new.add_two(1, 2)
+        ', 'x') { |t| t.type == resolve_type('::Integer') }
+
+        # Valid - calls another const method
+        check_type_of('
+            class X
+                #: (Integer, Integer, Integer) -> Integer
+                #!const
+                def add_three(x, y, z)
+                    add_two(add_two(x, y), z)
+                end
+
+                #: (Integer, Integer) -> Integer
+                #!const
+                def add_two(x, y)
+                    x + y
+                end
+            end
+
+            x = X.new.add_three(1, 2, 3)
+        ', 'x') { |t| t.type == resolve_type('::Integer') }
+
+        # Invalid - calls non-const from const
+        check_type_of('
+            class X
+                #: () -> Float
+                #!const
+                def fake_const_float
+                    Kernel.rand
                 end
             end
         ', expect_success: false)

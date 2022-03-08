@@ -150,6 +150,7 @@ def main(options)
         block,
         lexical_context: Houndstooth::Environment::BaseDefinedType.new,
         self_type: env.types["__HoundstoothMain"]
+        const_context: false,
     )
     
     if options[:debug_type_changes]

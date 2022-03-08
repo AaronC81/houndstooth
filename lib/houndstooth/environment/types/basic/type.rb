@@ -5,7 +5,7 @@ class Houndstooth::Environment
         #
         # @param [Symbol] method_name
         # @return [Method, nil]
-        def resolve_instance_method(method_name, env)
+        def resolve_instance_method(method_name, env, **_)
             nil
         end
 

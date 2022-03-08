@@ -6,14 +6,14 @@ module Houndstooth
             @env = env
         end
 
-        def process_block(block, lexical_context:, self_type:)
+        def process_block(block, lexical_context:, self_type:, const_context:)
             block.environment = env
             block.instructions.each do |ins|
-                process_instruction(ins, lexical_context: lexical_context, self_type: self_type)
+                process_instruction(ins, lexical_context: lexical_context, self_type: self_type, const_context: const_context)
             end
         end
 
-        def process_instruction(ins, lexical_context:, self_type:)                        
+        def process_instruction(ins, lexical_context:, self_type:, const_context:)                        
             case ins
             when Instructions::LiteralInstruction
                 assign_type_to_literal_instruction(ins)
@@ -41,8 +41,8 @@ module Houndstooth
                     end
                 end
 
-                process_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type)
-                process_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type)
+                process_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type, const_context: const_context)
+                process_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type, const_context: const_context)
                 
                 # A conditional could return either of its branches
                 ins.type_change = Environment::UnionType.new([
@@ -128,7 +128,7 @@ module Houndstooth
                             if !add_parameter_type_instructions(ins, ins.method_block, sig.block_parameter.type)
 
                         # Recurse type checking into it
-                        process_block(ins.method_block, lexical_context: lexical_context, self_type: self_type)
+                        process_block(ins.method_block, lexical_context: lexical_context, self_type: self_type, const_context: const_context)
 
                         # Check return type
                         if !sig.block_parameter.type.return_type.accepts?(ins.method_block.return_type!)
@@ -174,6 +174,14 @@ module Houndstooth
                 else
                     # No special cases, set result variable to return type
                     ins.type_change = sig.return_type
+                end
+
+                # If we're in a const context, check that the target method is const
+                if const_context && !method.const?
+                    Houndstooth::Errors::Error.new(
+                        "`#{target_type.rbs}` method `#{ins.method_name}` is not const, so cannot be called from a const context",
+                        [[ins.node.ast_node.loc.expression, "call inside a const context"]]
+                    ).push
                 end
                 
                 # If this method is const-required, check that the call was const-considered
@@ -268,6 +276,8 @@ module Houndstooth
                     ins.body,
                     lexical_context: type_being_defined,
                     self_type: type_being_defined_inst,
+                    # Type definitions bodies are always const
+                    const_context: true,
                 )
                 
                 # Returns the just-defined type
@@ -308,6 +318,8 @@ module Houndstooth
                         ins.body,
                         self_type: inner_self_type,
                         lexical_context: lexical_context,
+                        # Method definition bodies are const iff the method being defined is
+                        const_context: method.const?,
                     )
 
                     # Check return type

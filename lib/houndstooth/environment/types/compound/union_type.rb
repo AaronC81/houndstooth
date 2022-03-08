@@ -32,7 +32,7 @@ class Houndstooth::Environment
             end
         end
 
-        def resolve_instance_method(method_name, env)
+        def resolve_instance_method(method_name, env, **_)
             env.resolve_type('::BasicObject').resolve_instance_method(method_name, env)
         end
 
