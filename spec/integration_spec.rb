@@ -526,6 +526,27 @@ RSpec.describe 'integration tests' do
                 end
             end
         ', expect_success: false)
+
+        # Call to const-required-internal from const-required, and then call to that const-required
+        # from type definition body
+        check_type_of('
+            class X
+                #: (Symbol, Symbol) -> void
+                #!const required
+                def self.private_two(x, y)
+                    private x
+                    private y
+                end
+
+                #: () -> void
+                def foo; end
+
+                #: () -> void
+                def bar; end
+
+                private_two :foo, :bar
+            end
+        ')
     end
 
     it 'checks that const methods call other only other const methods' do        

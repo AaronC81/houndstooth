@@ -184,10 +184,11 @@ module Houndstooth
                     ).push
                 end
                 
-                # If this method is const-required, check that the call was const-considered
+                # If this method is const-required, check that the call was const-considered, or the
+                # method we're currently in is const-required
                 if method.const_required? && !ins.const_considered?
                     Houndstooth::Errors::Error.new(
-                        "`#{target_type.rbs}` method `#{ins.method_name}` is const-required, but this call is not within a const context",
+                        "`#{target_type.rbs}` method `#{ins.method_name}` is const-required, but this call is not within a const-required context",
                         [[ins.node.ast_node.loc.expression, "call outside a const context"]]
                     ).push
                 end
@@ -285,6 +286,11 @@ module Houndstooth
 
             when Instructions::MethodDefinitionInstruction
                 method, inner_self_type = ins.resolve_method_and_type(self_type, env)
+
+                # If this method is const-required, mark its body as const-considered
+                if method.const_required?
+                    ins.body.mark_const_considered
+                end
 
                 # Does it have any signatures?
                 if method.signatures.empty?
