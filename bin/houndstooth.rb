@@ -149,7 +149,7 @@ def main(options)
     checker.process_block(
         block,
         lexical_context: Houndstooth::Environment::BaseDefinedType.new,
-        self_type: env.types["__HoundstoothMain"]
+        self_type: env.types["__HoundstoothMain"],
         const_context: false,
     )
     
