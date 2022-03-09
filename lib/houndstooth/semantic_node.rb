@@ -82,6 +82,25 @@ module Houndstooth::SemanticNode
         def to_instructions(block)
             raise "#to_instructions not implemented for #{self.class.name}"
         end
+
+        protected
+
+        # Extracts type arguments from comments as strings.
+        def get_type_arguments
+            comments
+                .select { |c| c.text.start_with?('#!arg ') }
+                .map do |c|
+                    unless /^#!arg\s+(.+)\s*$/ === c.text
+                        Houndstooth::Errors::Error.new(
+                            "Malformed #!arg definition",
+                            [[c.loc.expression, "invalid"]]
+                        ).push
+                        return 
+                    end
+
+                    $1
+                end
+        end
     end
 
     def self.from_ast(...)

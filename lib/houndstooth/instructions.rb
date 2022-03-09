@@ -401,13 +401,20 @@ module Houndstooth
             # @return [Boolean]
             attr_accessor :super_call
 
-            def initialize(block:, node:, target:, method_name:, arguments: nil, method_block: nil, super_call: false)
+            # Any type arguments passed alongside this method call. When initially built, these
+            # may be strings, as the instruction builder doesn't have access to the environment to
+            # parse a type. They will be parsed and resolved to types later.
+            # @return [<String, Type>]
+            attr_accessor :type_arguments
+
+            def initialize(block:, node:, target:, method_name:, arguments: nil, method_block: nil, super_call: false, type_arguments: nil)
                 super(block: block, node: node)
                 @target = target
                 @method_name = method_name
                 @arguments = arguments || []
                 @method_block = method_block
                 @super_call = super_call
+                @type_arguments = type_arguments || []
             end
 
             def to_assembly
@@ -417,7 +424,11 @@ module Houndstooth
                     "#{super}send_super #{args}"
                 else
                     "#{super}send #{target.to_assembly} #{method_name} (#{args})"
-                end + (method_block ? " block\n#{assembly_indent(method_block.to_assembly)}\nend" : '')
+                end \
+                    + (type_arguments.any? ? " typeargs [#{
+                        type_arguments.map { |t| t.is_a?(String) ? "<unparsed> #{t}" : t.rbs }.join(', ')
+                    }]" : '') \
+                    + (method_block ? " block\n#{assembly_indent(method_block.to_assembly)}\nend" : '')
             end
         end
 

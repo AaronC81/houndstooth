@@ -147,19 +147,7 @@ module Houndstooth::SemanticNode
 
         def to_instructions(block)
             # Translate the array into `Array.new` followed by a sequence of calls to Array#push
-            type_arguments = comments
-                .select { |c| c.text.start_with?('#!arg ') }
-                .map do |c|
-                    unless /^#!arg\s+(.+)\s*$/ === c.text
-                        Houndstooth::Errors::Error.new(
-                            "Malformed #!arg definition",
-                            [[c.loc.expression, "invalid"]]
-                        ).push
-                        return 
-                    end
-
-                    $1
-                end
+            type_arguments = get_type_arguments
 
             block.instructions << I::ConstantBaseAccessInstruction.new(
                 block: block,

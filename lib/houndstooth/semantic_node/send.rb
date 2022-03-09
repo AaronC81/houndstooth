@@ -207,6 +207,8 @@ module Houndstooth::SemanticNode
                 block.instructions << I::SelfInstruction.new(block: block, node: self)
             end
             target_variable = block.instructions.last.result
+            
+            type_arguments = get_type_arguments
 
             # If this call uses save navigation, we want to wrap everything else in a conditional
             # which checks the target isn't nil
@@ -280,6 +282,7 @@ module Houndstooth::SemanticNode
                 method_name: method,
                 arguments: ins_args,
                 super_call: super_call,
+                type_arguments: type_arguments,
             )
 
             # Build up method block

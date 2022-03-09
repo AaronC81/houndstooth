@@ -206,6 +206,18 @@ RSpec.describe Houndstooth::Instructions do
         ]
     end
 
+    it 'can parse method type arguments' do
+        ins = code_to_block("
+            #!arg String
+            a.b
+        ").instructions
+        expect(ins).to match_array [
+            m(I::SelfInstruction),
+            m(I::SendInstruction, method_name: :a, type_arguments: ['String']),
+            m(I::SendInstruction, method_name: :b, type_arguments: []),
+        ]
+    end
+
     context 'can resolve types by traversing through instructions' do
         # TODO: When implemented, make these test cases use actual Ruby code with local variables
 

@@ -29,21 +29,7 @@ module Houndstooth::SemanticNode
                 target_value = block.instructions.last.result
             end
 
-            # TODO: Try to parse these from strings earlier, I just know this is going to end up
-            # causing problem
-            type_arguments = comments
-                .select { |c| c.text.start_with?('#!arg ') }
-                .map do |c|
-                    unless /^#!arg\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$/ === c.text
-                        Houndstooth::Errors::Error.new(
-                            "Malformed #!arg definition",
-                            [[c.loc.expression, "invalid"]]
-                        ).push
-                        return 
-                    end
-
-                    $1
-                end
+            type_arguments = get_type_arguments
 
             block.instructions << I::ConstantAccessInstruction.new(
                 block: block,
