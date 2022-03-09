@@ -18,7 +18,10 @@ class Houndstooth::Environment
         # @return [Type]
         attr_accessor :return_type
 
-        def initialize(positional: [], keyword: [], rest_positional: nil, rest_keyword: nil, block: nil, return_type: nil)
+        # @return [<String>]
+        attr_accessor :type_parameters
+
+        def initialize(positional: [], keyword: [], rest_positional: nil, rest_keyword: nil, block: nil, return_type: nil, type_parameters: nil)
             super()
 
             @positional_parameters = positional
@@ -27,6 +30,7 @@ class Houndstooth::Environment
             @rest_keyword_parameter = rest_keyword
             @block_parameter = block
             @return_type = return_type || VoidType.new
+            @type_parameters = type_parameters || []
         end
 
         def resolve_all_pending_types(environment, context:)

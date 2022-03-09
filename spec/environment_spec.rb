@@ -294,4 +294,30 @@ RSpec.describe Houndstooth::Environment do
         meth = subject.resolve_type('Numeric').resolve_instance_method(:+, subject)
         expect(meth.const).to eq :internal
     end
+
+    it 'can parse type signatures with type parameters' do
+        include Houndstooth::SemanticNode
+        node = code_to_semantic_node("
+            class A
+                #: [T] (T) -> T
+                def identity(x)
+                    x
+                end
+            end
+        ")
+        E::Builder.new(node, subject).analyze
+
+        expect(subject.types["A"].instance_methods).to include(
+            m(
+                E::Method,
+                name: :identity,
+                signatures: [m(
+                    E::MethodType,
+                    type_parameters: ['T'],
+                    positional_parameters: [m(E::PositionalParameter, type: m(E::TypeParameterPlaceholder, name: "T"))],
+                    return_type: m(E::TypeParameterPlaceholder, name: "T"),
+                )],
+            )
+        )
+    end 
 end

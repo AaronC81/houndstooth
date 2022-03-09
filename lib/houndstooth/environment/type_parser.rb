@@ -37,16 +37,19 @@ class Houndstooth::Environment
 
             case rbs_type
 
-            when RBS::MethodType, RBS::Types::Function, RBS::Types::Proc
+            when RBS::MethodType, RBS::Types::Function, RBS::Types::Proc                
                 conv = ->(klass, name, rbs, opt) do
                     klass.new(name, types_from_rbs(rbs.type, type_parameters: type_parameters), optional: opt)
                 end
 
                 # `MethodType` has a `Function` instance in its #type field
-                # It also has a block, whereas `Function` does not
+                # It also has a block and type parameters, whereas `Function` does not
                 if rbs_type.is_a?(RBS::MethodType) || rbs_type.is_a?(RBS::Types::Proc)
                     # Get block parameter
                     block_parameter = rbs_type.block&.then { |bp| conv.(BlockParameter, nil, bp, !bp.required) }
+
+                    # Get method type parameters
+                    method_type_parameters = rbs_type.type_params.map(&:name).map(&:to_s)
 
                     # Replace `rbs_type` used throughout this method with the inner `Function`
                     rbs_type = rbs_type.type
@@ -79,7 +82,8 @@ class Houndstooth::Environment
                     rest_positional: rest_positional_parameter,
                     rest_keyword: rest_keyword_parameter,
                     block: block_parameter,
-                    return_type: return_type
+                    return_type: return_type,
+                    type_parameters: method_type_parameters,
                 )
 
             when RBS::Types::ClassInstance
@@ -95,6 +99,9 @@ class Houndstooth::Environment
                         type_arguments: rbs_type.args.map { |t| types_from_rbs(t, type_parameters: type_parameters) }
                     )
                 end
+
+            when RBS::Types::Variable
+                TypeParameterPlaceholder.new(rbs_type.name.to_s)
 
             when RBS::Types::Bases::Void
                 VoidType.new
