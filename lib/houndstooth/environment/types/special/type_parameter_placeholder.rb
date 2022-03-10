@@ -8,21 +8,31 @@ class Houndstooth::Environment
         attr_accessor :name
 
         def accepts?(other)
-            other.is_a?(TypeParameterPlaceholder) && name == other.name
+            if other.is_a?(TypeParameterPlaceholder) && name == other.name
+                1
+            else
+                false
+            end
         end
 
         def rbs
             name
         end
 
-        def substitute_type_parameters(instance)
+        def substitute_type_parameters(instance, call_type_args)
+            # Call type arguments take priority, check those first
+            return call_type_args[name] if call_type_args[name]
+
             # Get index of type parameter
-            index = instance.type.type_parameters.index { |tp| tp == name } \
-                or raise "internal error: somehow no type parameter named #{name}"
+            index = instance.type.type_parameters.index { |tp| tp == name } or return self
 
             # Replace with type argument, which should be an instance
-            instance.type_arguments[index] \
-                or raise "internal error: somehow no type argument for parameter #{name} (index #{index}), this should've been checked earlier!"        
+            instance.type_arguments[index] or self
         end
+
+        # Yikes!
+        # It doesn't ever make sense to instantiate a type parameter, and trying to do so was
+        # causing problems when passing type arguments around functions, so just don't allow it
+        def instantiate(...) = self
     end
 end

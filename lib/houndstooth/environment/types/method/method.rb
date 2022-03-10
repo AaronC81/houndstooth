@@ -40,7 +40,7 @@ class Houndstooth::Environment
             end
         end
 
-        def substitute_type_parameters(instance)
+        def substitute_type_parameters(instance, call_type_args)
             raise 'internal error: tried to substitute parameters on a Method; too high in the hierarchy for this to be sensible'
         end
 
@@ -53,10 +53,20 @@ class Houndstooth::Environment
         #
         # @param [TypeInstance] instance
         # @param [<(Instructions::Argument, Type)>] arguments
+        # @param [<Type>] type_arguments
         # @return [MethodType, nil]
-        def resolve_matching_signature(instance, arguments)            
+        def resolve_matching_signature(instance, arguments, type_arguments = nil)
+            type_arguments ||= []
+
             sigs_with_scores = signatures
-                .map { |sig| [sig, sig.substitute_type_parameters(instance).accepts_arguments?(arguments)] }
+                .map do |sig|
+                    # Create {name => type} type argument mapping, or if the numbers mismatch
+                    # return false, as this signature cannot match
+                    next false if type_arguments.length != sig.type_parameters.length
+
+                    call_type_args = sig.type_parameters.zip(type_arguments).to_h
+                    [sig, sig.substitute_type_parameters(instance, call_type_args).accepts_arguments?(arguments)]
+                end
                 .reject { |_, r| r == false }
 
             if sigs_with_scores.any?

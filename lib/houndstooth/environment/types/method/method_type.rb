@@ -112,16 +112,16 @@ class Houndstooth::Environment
             distance_total
         end
 
-        def substitute_type_parameters(instance)
+        def substitute_type_parameters(instance, call_type_args)
             clone.tap do |t|
-                t.positional_parameters = t.positional_parameters.map { |p| p.substitute_type_parameters(instance) }
-                t.keyword_parameters = t.keyword_parameters.map { |p| p.substitute_type_parameters(instance) }
+                t.positional_parameters = t.positional_parameters.map { |p| p.substitute_type_parameters(instance, call_type_args) }
+                t.keyword_parameters = t.keyword_parameters.map { |p| p.substitute_type_parameters(instance, call_type_args) }
 
-                t.rest_positional_parameter = t.rest_positional_parameter&.substitute_type_parameters(instance)
-                t.rest_keyword_parameter = t.rest_keyword_parameter&.substitute_type_parameters(instance)
-                t.block_parameter = t.block_parameter&.substitute_type_parameters(instance)
+                t.rest_positional_parameter = t.rest_positional_parameter&.substitute_type_parameters(instance, call_type_args)
+                t.rest_keyword_parameter = t.rest_keyword_parameter&.substitute_type_parameters(instance, call_type_args)
+                t.block_parameter = t.block_parameter&.substitute_type_parameters(instance, call_type_args)
 
-                t.return_type = t.return_type.substitute_type_parameters(instance)
+                t.return_type = t.return_type.substitute_type_parameters(instance, call_type_args)
             end
         end
 
@@ -130,8 +130,14 @@ class Houndstooth::Environment
         def rbs
             params = 
                 [positional_parameters.map(&:rbs), keyword_parameters.map(&:rbs)].flatten.join(", ")
+
+            if type_parameters.any?
+                type_params = "[#{type_parameters.join(', ')}] "
+            else
+                type_params = ''
+            end
                 
-            "(#{params}) #{block_parameter ? "#{block_parameter.rbs} " : ''}-> #{return_type.rbs}"
+            "#{type_params}(#{params}) #{block_parameter ? "#{block_parameter.rbs} " : ''}-> #{return_type.rbs}"
         end
     end
 end

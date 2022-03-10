@@ -6,14 +6,19 @@ module Houndstooth
             @env = env
         end
 
-        def process_block(block, lexical_context:, self_type:, const_context:)
+        def process_block(block, lexical_context:, self_type:, const_context:, type_parameters:)
             block.environment = env
             block.instructions.each do |ins|
-                process_instruction(ins, lexical_context: lexical_context, self_type: self_type, const_context: const_context)
+                process_instruction(ins,
+                    lexical_context: lexical_context,
+                    self_type: self_type,
+                    const_context: const_context,
+                    type_parameters: type_parameters,
+                )
             end
         end
 
-        def process_instruction(ins, lexical_context:, self_type:, const_context:)                        
+        def process_instruction(ins, lexical_context:, self_type:, const_context:, type_parameters:)                        
             case ins
             when Instructions::LiteralInstruction
                 assign_type_to_literal_instruction(ins)
@@ -41,8 +46,8 @@ module Houndstooth
                     end
                 end
 
-                process_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type, const_context: const_context)
-                process_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type, const_context: const_context)
+                process_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type, const_context: const_context, type_parameters: type_parameters)
+                process_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type, const_context: const_context, type_parameters: type_parameters)
                 
                 # A conditional could return either of its branches
                 ins.type_change = Environment::UnionType.new([
@@ -57,6 +62,9 @@ module Houndstooth
                 end
 
             when Instructions::SendInstruction
+                # Parse type arguments, if any
+                type_args = parse_type_arguments(ins.type_arguments, type_parameters)
+
                 # Get type of target
                 target_type = ins.block.variable_type_at!(ins.target, ins)
 
@@ -81,7 +89,7 @@ module Houndstooth
                 end
 
                 # Resolve the best method signature with these
-                sig = method.resolve_matching_signature(target_type, arguments_with_types)&.substitute_type_parameters(target_type)
+                sig = method.resolve_matching_signature(target_type, arguments_with_types, type_args)
                 if sig.nil?
                     # Special case - if the node isn't a send, then it's a generated insertion to
                     # an array
@@ -97,7 +105,7 @@ module Houndstooth
 
                         if method.signatures.any?
                             error_message += "Available signatures are:\n" \
-                                + method.signatures.map { |s| "  - #{s.substitute_type_parameters(target_type).rbs}" }.join("\n")
+                                + method.signatures.map { |s| "  - #{s.substitute_type_parameters(target_type, Hash.new).rbs}" }.join("\n")
                         else
                             error_message += "Method has no signatures - did you use a #: comment?"
                         end
@@ -119,6 +127,11 @@ module Houndstooth
                     return
                 end
 
+                # Resolve type arguments - don't need to perform length check here, since the sig
+                # wouldn't have matched if the lengths mismatched
+                call_type_args = sig.type_parameters.zip(type_args).to_h
+                sig = sig.substitute_type_parameters(target_type, call_type_args)
+
                 # Handle block
                 catch :abort_block do
                     if sig.block_parameter && ins.method_block
@@ -128,7 +141,7 @@ module Houndstooth
                             if !add_parameter_type_instructions(ins, ins.method_block, sig.block_parameter.type)
 
                         # Recurse type checking into it
-                        process_block(ins.method_block, lexical_context: lexical_context, self_type: self_type, const_context: const_context)
+                        process_block(ins.method_block, lexical_context: lexical_context, self_type: self_type, const_context: const_context, type_parameters: type_parameters)
 
                         # Check return type
                         if !sig.block_parameter.type.return_type.accepts?(ins.method_block.return_type!)
@@ -235,25 +248,8 @@ module Houndstooth
 
                 # Does the type require type parameters?
                 if resolved.type_parameters.any?
-                    # Yep - if the arguments are strings, parse them
-                    type_args = ins.type_arguments.map do |arg|
-                        if arg.is_a?(String)
-                            # TODO: as specified in comment at instruction-generation-time, not ideal
-                            # We don't know about other type arguments, nor the correct context
-                            t = Environment::TypeParser.parse_type(arg)
-                            t.resolve_all_pending_types(env, context: nil)
-
-                            # TODO: Ideally this should always return an instance so that we don't
-                            # need to do this
-                            if t.is_a?(Environment::TypeInstance)
-                                t
-                            else
-                                t.instantiate
-                            end
-                        else
-                            arg
-                        end
-                    end
+                    # Yep - parse them
+                    type_args = parse_type_arguments(ins.type_arguments, type_parameters)
                 else
                     type_args = []
                 end
@@ -279,6 +275,7 @@ module Houndstooth
                     self_type: type_being_defined_inst,
                     # Type definitions bodies are always const
                     const_context: true,
+                    type_parameters: type_parameters + type_being_defined.type_parameters,
                 )
                 
                 # Returns the just-defined type
@@ -315,6 +312,7 @@ module Houndstooth
                         lexical_context: lexical_context,
                         # Method definition bodies are const iff the method being defined is
                         const_context: method.const?,
+                        type_parameters: type_parameters + sig.type_parameters,
                     )
 
                     # Check return type
@@ -448,6 +446,33 @@ module Houndstooth
             end
 
             expected_ps.length
+        end
+
+        # Given a list of types as strings, conventionally a list of type arguments (but it doesn't
+        # actually matter), parses them into types and returns the new array. The original array is
+        # not modified. If any of the items in the array are not strings, they are left unchanged in
+        # the new array.
+        # @param [<String, Type>] type_args
+        # @return [<Type>]
+        def parse_type_arguments(type_args, type_parameters)
+            type_args.map do |arg|
+                if arg.is_a?(String)
+                    # TODO: as specified in comment at instruction-generation-time, not ideal
+                    # We don't know about other type arguments, nor the correct context
+                    t = Environment::TypeParser.parse_type(arg, type_parameters: type_parameters)
+                    t.resolve_all_pending_types(env, context: nil)
+
+                    # TODO: Ideally this should always return an instance so that we don't
+                    # need to do this
+                    if t.is_a?(Environment::TypeInstance)
+                        t
+                    else
+                        t.instantiate
+                    end
+                else
+                    arg
+                end
+            end
         end
     end
 end

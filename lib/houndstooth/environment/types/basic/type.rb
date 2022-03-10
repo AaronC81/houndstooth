@@ -55,14 +55,22 @@ class Houndstooth::Environment
         end
 
         # Returns a copy of this type with any type parameters substituted for their actual values
-        # based on the given instance.
+        # based on the given instance, and if provided, the call-specific type arguments.
+        #
+        # The instance is required, but the call-specific type arguments are not, and should be
+        # passed as `nil` for everything except methods.
+        #
+        # Because this has no link back the method type on which arguments are being substituted,
+        # the caller must construct a hash of call-specific type arguments which includes their
+        # name.
         #
         # The returned type could be a partial clone, deep clone, or even not a copy at all (just
         # `self`) - the implementor makes no guarantees. As such, do NOT modify the returned type.
         #
         # @param [TypeInstance] instance
+        # @param [{String => Type}] call_type_args
         # @return [Type]
-        def substitute_type_parameters(instance) = self
+        def substitute_type_parameters(instance, call_type_args) = self
 
         # Returns an RBS representation of this type. Subclasses should override this.
         # This will not have the same formatting as the input string this is parsed from.

@@ -26,6 +26,7 @@ RSpec.describe 'integration tests' do
                 lexical_context: Houndstooth::Environment::BaseDefinedType.new,
                 self_type: env.types["__HoundstoothMain"],
                 const_context: false,
+                type_parameters: [],
             )
         end
 
@@ -592,5 +593,60 @@ RSpec.describe 'integration tests' do
                 end
             end
         ', expect_success: false)
+    end
+
+    it 'allows type parameters on methods' do
+        # Normal call
+        check_type_of('
+            module X
+                #: [A] (A) -> A
+                def self.identity(x)
+                    x
+                end
+            end
+
+            x = X
+                #!arg Integer
+                .identity(3)
+        ', 'x') { |t| t.type == resolve_type('Integer') }
+
+        # Insufficient type arguments
+        check_type_of('
+            module X
+                #: [A] (A) -> A
+                def self.identity(x)
+                    x
+                end
+            end
+
+            x = X.identity(3)
+        ', expect_success: false)
+
+        # Unexpected type arguments
+        check_type_of('
+            Kernel.
+                #!arg String
+                puts "hello"
+        ', expect_success: false)
+
+        # Passing type arguments through calls
+        check_type_of('
+            module X
+                #: [T] (T) -> T
+                def self.identity(x)
+                    x
+                end
+                
+                #: [T] (T) -> T
+                def self.indirect_identity(x)
+                    #!arg T
+                    identity(x)
+                end
+            end
+            
+            x = X
+                #!arg Integer
+                .indirect_identity(3)
+        ', 'x') { |t| t.type == resolve_type('Integer') }
     end
 end
