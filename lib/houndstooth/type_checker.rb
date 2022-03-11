@@ -63,7 +63,7 @@ module Houndstooth
 
             when Instructions::SendInstruction
                 # Parse type arguments, if any
-                type_args = parse_type_arguments(ins.type_arguments, type_parameters)
+                type_args = Environment::TypeParser.parse_type_arguments(env, ins.type_arguments, type_parameters)
 
                 # Get type of target
                 target_type = ins.block.variable_type_at!(ins.target, ins)
@@ -249,7 +249,7 @@ module Houndstooth
                 # Does the type require type parameters?
                 if resolved.type_parameters.any?
                     # Yep - parse them
-                    type_args = parse_type_arguments(ins.type_arguments, type_parameters)
+                    type_args = Environment::TypeParser.parse_type_arguments(env, ins.type_arguments, type_parameters)
                 else
                     type_args = []
                 end
@@ -446,33 +446,6 @@ module Houndstooth
             end
 
             expected_ps.length
-        end
-
-        # Given a list of types as strings, conventionally a list of type arguments (but it doesn't
-        # actually matter), parses them into types and returns the new array. The original array is
-        # not modified. If any of the items in the array are not strings, they are left unchanged in
-        # the new array.
-        # @param [<String, Type>] type_args
-        # @return [<Type>]
-        def parse_type_arguments(type_args, type_parameters)
-            type_args.map do |arg|
-                if arg.is_a?(String)
-                    # TODO: as specified in comment at instruction-generation-time, not ideal
-                    # We don't know about other type arguments, nor the correct context
-                    t = Environment::TypeParser.parse_type(arg, type_parameters: type_parameters)
-                    t.resolve_all_pending_types(env, context: nil)
-
-                    # TODO: Ideally this should always return an instance so that we don't
-                    # need to do this
-                    if t.is_a?(Environment::TypeInstance)
-                        t
-                    else
-                        t.instantiate
-                    end
-                else
-                    arg
-                end
-            end
         end
     end
 end

@@ -120,5 +120,30 @@ class Houndstooth::Environment
                 raise "RBS type construct #{rbs_type.class} is not supported (usage: #{rbs_type.location.source})"
             end
         end
+
+        # Given a list of types as strings, conventionally a list of type arguments (but it doesn't
+        # actually matter), parses them into types and returns the new array. The original array is
+        # not modified. If any of the items in the array are not strings, they are left unchanged in
+        # the new array.
+        # @param [<String, Type>] type_args
+        # @return [<Type>]
+        def self.parse_type_arguments(env, type_args, type_parameters)
+            type_args.map do |arg|
+                if arg.is_a?(String)
+                    # TODO: as specified in comment at instruction-generation-time, not ideal
+                    # We don't know about other type arguments, nor the correct context
+                    t = parse_type(arg, type_parameters: type_parameters)
+                    t.resolve_all_pending_types(env, context: nil)
+
+                    if t.is_a?(TypeInstance)
+                        t
+                    else
+                        t.instantiate
+                    end
+                else
+                    arg
+                end
+            end
+        end
     end
 end
