@@ -649,4 +649,34 @@ RSpec.describe 'integration tests' do
                 .indirect_identity(3)
         ', 'x') { |t| t.type == resolve_type('Integer') }
     end
+
+    it 'understands attr_reader' do
+        check_type_of('
+            #!var @x Integer
+            #!var @y Integer
+            class X
+                #: () -> void
+                def initialize
+                    @x = 0
+                    @y = 0
+                end
+
+                #: [T] (Symbol, Symbol) -> void
+                #!const required
+                def self.duo_reader(a, b)
+                    #!arg T
+                    attr_reader a
+
+                    #!arg T
+                    attr_reader b
+                end
+
+                #!arg Integer
+                duo_reader(:x, :y)
+            end
+
+            x = X.new
+            z = x.x + x.y + 1
+        ', 'z') { |t| t.type == resolve_type('Integer') }
+    end
 end

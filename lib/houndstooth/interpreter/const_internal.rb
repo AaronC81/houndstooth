@@ -5,7 +5,7 @@ module Houndstooth::Interpreter
             @method_definitions = {}
 
             # Initialize adding methods
-            add = ->(this, other) do
+            add = ->(this, other, **_) do
                 InterpreterObject.from_value(
                     value: this.unwrap_primitive_value + other.unwrap_primitive_value,
                     env: env,
@@ -16,14 +16,31 @@ module Houndstooth::Interpreter
             end
 
             # puts and print
-            nil_method = ->(*_) { InterpreterObject.from_value(value: nil, env: env) }
+            nil_method = ->(*_, **_) { InterpreterObject.from_value(value: nil, env: env) }
             kernel = env.resolve_type('::Kernel').eigen
             [:puts, :print].each do |m|
                 @method_definitions[kernel.resolve_instance_method(m, env)] = nil_method
             end
 
+            # attr_reader
+            @method_definitions[env.resolve_type('::Class').eigen.resolve_instance_method(:attr_reader, env)] =
+                ->(this, name, type_arguments:, **_) do
+                    t = type_arguments['T']
+                    t = t.substitute_type_parameters(nil, type_arguments)
+
+                    env.resolve_type(this.type.uneigen).instance_methods << Houndstooth::Environment::Method.new(
+                        name.unwrap_primitive_value,
+                        [
+                            Houndstooth::Environment::MethodType.new(
+                                return_type: t,
+                            )
+                        ]
+                    )
+                    InterpreterObject.from_value(value: nil, env: env)
+                end
+
             # Various env-changing methods are a no-op for now
-            [:attr_reader, :private, :protected].each do |m|
+            [:private, :protected].each do |m|
                 @method_definitions[env.resolve_type('::Class').eigen.resolve_instance_method(m, env)] = nil_method
             end
         end

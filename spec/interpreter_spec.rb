@@ -14,6 +14,7 @@ RSpec.describe Houndstooth::Interpreter do
             self_type: nil,
             self_object: nil,
             lexical_context: Houndstooth::Environment::BaseDefinedType.new,
+            type_arguments: {},
         )
 
         if Houndstooth::Errors.errors.any?

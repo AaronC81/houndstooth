@@ -17,13 +17,13 @@ module Houndstooth::Interpreter
         # @return [ConstInternal]
         attr_accessor :const_internal
 
-        def execute_block(block, lexical_context:, self_type:, self_object:)
+        def execute_block(block, lexical_context:, self_type:, self_object:, type_arguments:)
             block.instructions.each do |inst|
-                execute_instruction(inst, lexical_context: lexical_context, self_type: self_type, self_object: self_object)
+                execute_instruction(inst, lexical_context: lexical_context, self_type: self_type, self_object: self_object, type_arguments: type_arguments)
             end
         end
 
-        def execute_instruction(ins, lexical_context:, self_type:, self_object:)
+        def execute_instruction(ins, lexical_context:, self_type:, self_object:, type_arguments:)
             case ins
             when Houndstooth::Instructions::ConstantBaseAccessInstruction
                 # There's no object we can use to represent the constant base, so let's go with a 
@@ -79,6 +79,7 @@ module Houndstooth::Interpreter
                         type: type_being_defined,
                         env: env,
                     ),
+                    type_arguments: type_arguments,
                 )
 
                 result_value = variables[ins.body.instructions.last.result]
@@ -133,13 +134,22 @@ module Houndstooth::Interpreter
                     variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
                     return
                 end
-                
+
+                # Parse type arguments
+                type_args = Houndstooth::Environment::TypeParser.parse_type_arguments(env, ins.type_arguments, type_arguments)
+                    .map { |t| t.substitute_type_parameters(nil, type_arguments) }
+                # TODO: what if there's more than one signature?
+                # This is actually a case which needs to be considered for `define_method`
+                type_params = meth.signatures.first.type_parameters
+                type_arguments = type_arguments.merge(type_params.zip(type_args).to_h)
+
                 if meth.const_internal?
                     # Look up, call, and set result
                     begin
                         definition = const_internal.method_definitions[meth]
                         raise "internal error: `#{meth.name}` on `#{target}` is missing const-internal definition" if definition.nil?
-                        result_value = definition.(target, *args)
+
+                        result_value = definition.(target, *args, type_arguments: type_arguments)
                     rescue => e
                         raise e if $cli_options[:fatal_interpreter]
                         
@@ -203,6 +213,7 @@ module Houndstooth::Interpreter
                         lexical_context: nil,
                         self_object: target,
                         self_type: target.type,
+                        type_arguments: type_arguments,
                     )
                     result_value = child_runtime.variables[meth.instruction_block.instructions.last.result]
                 end
@@ -210,10 +221,10 @@ module Houndstooth::Interpreter
             when Houndstooth::Instructions::ConditionalInstruction
                 condition = variables[ins.condition]
                 if condition.truthy?
-                    execute_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type, self_object: self_object)
+                    execute_block(ins.true_branch, lexical_context: lexical_context, self_type: self_type, self_object: self_object, type_arguments: type_arguments)
                     result_value = variables[ins.true_branch.instructions.last.result]
                 else
-                    execute_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type, self_object: self_object)
+                    execute_block(ins.false_branch, lexical_context: lexical_context, self_type: self_type, self_object: self_object, type_arguments: type_arguments)
                     result_value = variables[ins.false_branch.instructions.last.result]
                 end
 
@@ -244,6 +255,7 @@ module Houndstooth::Interpreter
                     self_object: nil, # TODO
                     self_type: nil, # TODO
                     lexical_context: Houndstooth::Environment::BaseDefinedType.new,
+                    type_arguments: {},
                 )
             end
         end

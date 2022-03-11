@@ -21,8 +21,18 @@ class Class < Module
     # Special case of `new` being defined as a method rather than magically - this only affects the
     # rather rare usage `Class.new.new`, not anything else e.g. `Object.new`
     def new; end
+end
 
-    #: (Symbol) -> void
+class Object < BasicObject
+    #: () -> String
+    def inspect; end
+
+    #: (Object) -> Boolean
+    def ==(other); end
+end
+
+
+    #: [T] (Symbol) -> void
     #!const required_internal
     def attr_reader(name); end
 
