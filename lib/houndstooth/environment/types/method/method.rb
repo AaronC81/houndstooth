@@ -62,7 +62,7 @@ class Houndstooth::Environment
                 .map do |sig|
                     # Create {name => type} type argument mapping, or if the numbers mismatch
                     # return false, as this signature cannot match
-                    next false if type_arguments.length != sig.type_parameters.length
+                    next [nil, false] if type_arguments.length != sig.type_parameters.length
 
                     call_type_args = sig.type_parameters.zip(type_arguments).to_h
                     [sig, sig.substitute_type_parameters(instance, call_type_args).accepts_arguments?(arguments)]
