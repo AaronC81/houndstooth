@@ -39,6 +39,33 @@ module Houndstooth::Interpreter
                     InterpreterObject.from_value(value: nil, env: env)
                 end
 
+            # define_method
+            @method_definitions[env.resolve_type('::Class').eigen.resolve_instance_method(:define_method, env)] =
+                ->(this, name, type_arguments:, **_) do
+                    # Get all argument types and return type
+                    arg_types = (type_arguments.length - 1).times.map do |i|
+                        type_arguments["A#{i + 1}"].substitute_type_parameters(nil, type_arguments)
+                    end
+                    return_type = type_arguments['R'].substitute_type_parameters(nil, type_arguments)
+
+                    # Create method
+                    env.resolve_type(this.type.uneigen).instance_methods << Houndstooth::Environment::Method.new(
+                        name.unwrap_primitive_value,
+                        [
+                            Houndstooth::Environment::MethodType.new(
+                                positional: arg_types.map.with_index do |t, i|
+                                    Houndstooth::Environment::PositionalParameter.new(
+                                        "__anon_param_#{i}",
+                                        t,
+                                    )
+                                end,
+                                return_type: return_type,
+                            )
+                        ]
+                    )
+                    InterpreterObject.from_value(value: nil, env: env)
+                end
+
             # Various env-changing methods are a no-op for now
             [:private, :protected].each do |m|
                 @method_definitions[env.resolve_type('::Class').eigen.resolve_instance_method(m, env)] = nil_method

@@ -138,9 +138,11 @@ module Houndstooth::Interpreter
                 # Parse type arguments
                 type_args = Houndstooth::Environment::TypeParser.parse_type_arguments(env, ins.type_arguments, type_arguments)
                     .map { |t| t.substitute_type_parameters(nil, type_arguments) }
-                # TODO: what if there's more than one signature?
-                # This is actually a case which needs to be considered for `define_method`
-                type_params = meth.signatures.first.type_parameters
+
+                # Crudely find the best signature based on the number of type parameters - this is
+                # extremely wonky!
+                type_params = meth.signatures.find { |sig| sig.type_parameters.length == type_args.length }&.type_parameters
+                raise 'internal error: no const signature matching number of type parameters' if type_params.nil?
                 type_arguments = type_arguments.merge(type_params.zip(type_args).to_h)
 
                 if meth.const_internal?

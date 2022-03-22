@@ -31,6 +31,24 @@ class Object < BasicObject
     def ==(other); end
 end
 
+class Module
+    #: () -> Array[Module]
+    def nesting; end
+
+    # The RBS syntax doesn't support any nicer way of doing this :(
+    #: [                                         R] (Symbol) { ()                                        -> R } -> Symbol
+    #: [A1,                                      R] (Symbol) { (A1)                                      -> R } -> Symbol
+    #: [A1, A2,                                  R] (Symbol) { (A1, A2)                                  -> R } -> Symbol
+    #: [A1, A2, A3,                              R] (Symbol) { (A1, A2, A3)                              -> R } -> Symbol
+    #: [A1, A2, A3, A4,                          R] (Symbol) { (A1, A2, A3, A4)                          -> R } -> Symbol
+    #: [A1, A2, A3, A4, A5,                      R] (Symbol) { (A1, A2, A3, A4, A5)                      -> R } -> Symbol
+    #: [A1, A2, A3, A4, A5, A6,                  R] (Symbol) { (A1, A2, A3, A4, A5, A6)                  -> R } -> Symbol
+    #: [A1, A2, A3, A4, A5, A6, A7,              R] (Symbol) { (A1, A2, A3, A4, A5, A6, A7)              -> R } -> Symbol
+    #: [A1, A2, A3, A4, A5, A6, A7, A8,          R] (Symbol) { (A1, A2, A3, A4, A5, A6, A7, A8)          -> R } -> Symbol
+    #: [A1, A2, A3, A4, A5, A6, A7, A8, A9,      R] (Symbol) { (A1, A2, A3, A4, A5, A6, A7, A8, A9)      -> R } -> Symbol
+    #: [A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, R] (Symbol) { (A1, A2, A3, A4, A5, A6, A7, A8, A9, A10) -> R } -> Symbol
+    #!const required_internal
+    def define_method(name, *); end
 
     #: [T] (Symbol) -> void
     #!const required_internal
@@ -45,19 +63,6 @@ end
     #: (Symbol) -> void
     #!const required_internal
     def protected(name); end
-end
-
-class Object < BasicObject
-    #: () -> String
-    def inspect; end
-
-    #: (Object) -> Boolean
-    def ==(other); end
-end
-
-class Module
-    #: () -> Array[Module]
-    def nesting; end
 end
 
 class Numeric
