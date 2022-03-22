@@ -90,6 +90,7 @@ class Integer < Numeric
     def +(other); end
 
     #: () { (Integer) -> void } -> Integer
+    #!const internal
     def times; end
 
     #: () -> Integer

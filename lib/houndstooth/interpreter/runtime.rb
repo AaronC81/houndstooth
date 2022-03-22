@@ -151,7 +151,32 @@ module Houndstooth::Interpreter
                         definition = const_internal.method_definitions[meth]
                         raise "internal error: `#{meth.name}` on `#{target}` is missing const-internal definition" if definition.nil?
 
-                        result_value = definition.(target, *args, type_arguments: type_arguments)
+                        # It's OK for const-internal definitions to just execute the block directly
+                        # on this runtime, since the instruction generator will have sorted out any
+                        # local scoping with overlapping names for us
+                        result_value = definition.(
+                            target, *args,
+                            type_arguments: type_arguments,
+                            call_block: ->(args) do
+                                # `call_method`'s arguments expect Variables... but we don't have
+                                # any here! The value came from a magical internal source.
+                                # Instead, we can just make up some new ones; it'll be fine!
+                                args = args.map do |arg|
+                                    var = Houndstooth::Instructions::Variable.new
+                                    variables[var] = arg
+                                    Houndstooth::Instructions::PositionalArgument.new(var)
+                                end
+
+                                call_method(
+                                    block: ins.method_block,
+                                    arguments: args,
+                                    loc: ins.node.ast_node.loc,
+                                    type_arguments: type_arguments,
+                                    target: target,
+                                    lexical_context: lexical_context,
+                                )
+                            end,
+                        )
                     rescue => e
                         raise e if $cli_options[:fatal_interpreter]
                         
@@ -178,46 +203,20 @@ module Houndstooth::Interpreter
                         return
                     end
 
-                    # Create a new runtime frame to call this method
-                    child_runtime = Runtime.new(env: env)
-
-                    # Populate arguments
-                    if ins.arguments.length != meth.instruction_block.parameters.length
-                        Houndstooth::Errors::Error.new(
-                            "Wrong number of arguments to interpreter method call",
-                            [[ins.node.ast_node.loc.expression, "got #{ins.arguments.length}, expected #{meth.instruction_block.parameters.length}"]],
-                        ).push
-
+                    call_result = call_method(
+                        block: meth.instruction_block,
+                        arguments: ins.arguments,
+                        loc: ins.node.ast_node.loc,
+                        type_arguments: type_arguments,
+                        target: target,
+                        lexical_context: lexical_context,
+                    )
+                    if call_result == false
                         # Abandon
                         variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
-                        return
+                    else
+                        result_value = call_result
                     end
-
-                    ins.arguments.zip(meth.instruction_block.parameters).each do |arg, param_var|
-                        unless arg.is_a?(Houndstooth::Instructions::PositionalArgument)
-                            Houndstooth::Errors::Error.new(
-                                "Unsupported argument type used - only positional arguments are supported",
-                                [[ins.node.ast_node.loc.expression, 'unsupported']],
-                            ).push
-
-                            # Abandon
-                            variables[ins.result] = InterpreterObject.from_value(value: nil, env: env)
-                            return
-                        end
-
-                        # Inject variables into the runtime to set
-                        child_runtime.variables[param_var] = variables[arg.variable]
-                    end
-                    
-                    # Execute body and set return value
-                    child_runtime.execute_block(
-                        meth.instruction_block,
-                        lexical_context: nil,
-                        self_object: target,
-                        self_type: target.type,
-                        type_arguments: type_arguments,
-                    )
-                    result_value = child_runtime.variables[meth.instruction_block.instructions.last.result]
                 end
                 
             when Houndstooth::Instructions::ConditionalInstruction
@@ -260,6 +259,47 @@ module Houndstooth::Interpreter
                     type_arguments: {},
                 )
             end
+        end
+
+        def call_method(block:, arguments:, loc:, type_arguments:, target:, lexical_context:)
+            # Create a new runtime frame to call this method
+            child_runtime = Runtime.new(env: env)
+
+            # Populate arguments
+            if arguments.length != block.parameters.length
+                Houndstooth::Errors::Error.new(
+                    "Wrong number of arguments to interpreter method call",
+                    [[loc.expression, "got #{arguments.length}, expected #{block.parameters.length}"]],
+                ).push
+
+                # Abandon
+                return false
+            end
+
+            arguments.zip(block.parameters).each do |arg, param_var|
+                unless arg.is_a?(Houndstooth::Instructions::PositionalArgument)
+                    Houndstooth::Errors::Error.new(
+                        "Unsupported argument type used - only positional arguments are supported",
+                        [[loc.expression, 'unsupported']],
+                    ).push
+
+                    # Abandon
+                    return false
+                end
+
+                # Inject variables into the runtime to set
+                child_runtime.variables[param_var] = variables[arg.variable]
+            end
+
+            # Execute body and set return value
+            child_runtime.execute_block(
+                block,
+                lexical_context: lexical_context,
+                self_object: target,
+                self_type: target.type,
+                type_arguments: type_arguments,
+            )
+            child_runtime.variables[block.instructions.last.result]
         end
     end
 end

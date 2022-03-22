@@ -144,6 +144,9 @@ def main(options)
     runtime.execute_from_top_level(block)
     abort_on_error!
 
+    # That could have printed due to const-internal `puts` etc - if it did, print a divider
+    puts "--- end of const stdout ---" if $const_printed
+
     # Type check the instruction block
     checker = Houndstooth::TypeChecker.new(env)
     checker.process_block(

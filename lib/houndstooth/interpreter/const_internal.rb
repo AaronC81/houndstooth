@@ -15,11 +15,33 @@ module Houndstooth::Interpreter
                 @method_definitions[env.resolve_type(t).resolve_instance_method(:+, env)] = add     
             end
 
+            # times
+            @method_definitions[env.resolve_type('::Integer').resolve_instance_method(:times, env)] =
+                ->(this, call_block:, **_) do
+                    this.unwrap_primitive_value.times do |i|
+                        call_block.([InterpreterObject.from_value(value: i, env: env)])
+                    end
+
+                    this
+                end
+
             # puts and print
-            nil_method = ->(*_, **_) { InterpreterObject.from_value(value: nil, env: env) }
             kernel = env.resolve_type('::Kernel').eigen
-            [:puts, :print].each do |m|
-                @method_definitions[kernel.resolve_instance_method(m, env)] = nil_method
+            @method_definitions[kernel.resolve_instance_method(:puts, env)] = ->(_, obj, **_) do
+                $const_printed = true
+                if obj.primitive_value.first
+                    puts obj.unwrap_primitive_value
+                else
+                    puts obj.inspect
+                end
+            end
+            @method_definitions[kernel.resolve_instance_method(:print, env)] = ->(_, obj, **_) do
+                $const_printed = true
+                if obj.primitive_value.first
+                    print obj.unwrap_primitive_value
+                else
+                    print obj.inspect
+                end
             end
 
             # attr_reader
@@ -67,6 +89,7 @@ module Houndstooth::Interpreter
                 end
 
             # Various env-changing methods are a no-op for now
+            nil_method = ->(*_, **_) { InterpreterObject.from_value(value: nil, env: env) }
             [:private, :protected].each do |m|
                 @method_definitions[env.resolve_type('::Class').eigen.resolve_instance_method(m, env)] = nil_method
             end
