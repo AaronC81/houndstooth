@@ -430,6 +430,13 @@ module Houndstooth
                     }]" : '') \
                     + (method_block ? " block\n#{assembly_indent(method_block.to_assembly)}\nend" : '')
             end
+
+            def mark_const_considered
+                super
+
+                # If this has a block, mark it as const-considered too
+                method_block&.mark_const_considered
+            end
         end
 
         # An instruction which assigns the value of `self`.
