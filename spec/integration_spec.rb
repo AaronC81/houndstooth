@@ -679,4 +679,82 @@ RSpec.describe 'integration tests' do
             z = x.x + x.y + 1
         ', 'z') { |t| t.type == resolve_type('Integer') }
     end
+
+    it 'understands define_method' do
+        # Single usage, return-only
+        check_type_of('
+            class X
+                #!arg Float
+                define_method :pi do
+                    3.14
+                end
+            end
+
+            p = X.new.pi
+        ', 'p') { |t| t.type == resolve_type('Float') }
+
+        # Single usage, parameters
+        check_type_of('
+            class X
+                #!arg Integer
+                #!arg Integer
+                #!arg Integer
+                define_method :add_ints do |a, b|
+                    a + b
+                end
+            end
+
+            x = X.new.add_ints(3, 2)
+        ', 'x') { |t| t.type == resolve_type('Integer') }
+
+        # Looped usage
+        check_type_of(' 
+            class Adder
+                1000.times do |i,|
+                    #!arg Integer
+                    #!arg Integer
+                    define_method :"add_#{i}" do |input,|
+                        i + input
+                    end
+                end
+            end
+
+            x = Adder.new.add_5(3)
+        ', 'x') { |t| t.type == resolve_type('Integer') }
+
+        # Block does not match signature (arity)
+        check_type_of(' 
+            class X
+                #!arg Float
+                #!arg Float
+                define_method :pi do
+                    3.14
+                end
+            end
+
+            p = X.new.pi
+        ', expect_success: false)
+        check_type_of(' 
+            class X
+                #!arg Float
+                define_method :pi do |a,|
+                    3.14
+                end
+            end
+
+            p = X.new.pi
+        ', expect_success: false)
+
+        # Block does not match signature (types)
+        check_type_of(' 
+            class X
+                #!arg Float
+                define_method :pi do
+                    "oh no"
+                end
+            end
+
+            p = X.new.pi
+        ', expect_success: false)
+    end
 end
