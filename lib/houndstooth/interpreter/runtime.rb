@@ -172,7 +172,7 @@ module Houndstooth::Interpreter
                                     arguments: args,
                                     loc: ins.node.ast_node.loc,
                                     type_arguments: type_arguments,
-                                    target: target,
+                                    target: self_object,
                                     lexical_context: lexical_context,
                                 )
                             end,
@@ -229,6 +229,14 @@ module Houndstooth::Interpreter
                     result_value = variables[ins.false_branch.instructions.last.result]
                 end
 
+            when Houndstooth::Instructions::ToStringInstruction
+                obj = variables[ins.target]
+                if obj.primitive_value.first
+                    result_value = obj.unwrap_primitive_value.to_s
+                else
+                    result_value = obj.inspect
+                end
+                result_value = InterpreterObject.from_value(value: result_value, env: env)
             else
                 raise "internal error: don't know how to interpret #{ins.class.name}"
             end
