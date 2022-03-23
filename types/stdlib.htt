@@ -109,10 +109,15 @@ end
 
 class String
     #: (String) -> String
+    #!const internal
     def +(other); end
 
     #: () -> Integer
     def length; end
+
+    #: () -> Symbol
+    #!const internal
+    def to_sym; end
 end
 
 class Symbol; end

@@ -11,9 +11,15 @@ module Houndstooth::Interpreter
                     env: env,
                 )
             end
-            ['::Numeric', '::Integer', '::Float'].each do |t|
+            ['::Numeric', '::Integer', '::Float', '::String'].each do |t|
                 @method_definitions[env.resolve_type(t).resolve_instance_method(:+, env)] = add     
             end
+
+            # to_sym
+            @method_definitions[env.resolve_type('::String').resolve_instance_method(:to_sym, env)] =
+                ->(this, **_) do
+                    InterpreterObject.from_value(value: this.unwrap_primitive_value.to_sym, env: env)
+                end
 
             # times
             @method_definitions[env.resolve_type('::Integer').resolve_instance_method(:times, env)] =
