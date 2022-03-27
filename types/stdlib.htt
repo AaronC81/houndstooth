@@ -123,8 +123,13 @@ end
 class Symbol; end
 
 #!param T
-class Array
+class Array    
+    #: () -> void
+    #!const internal
+    def initialize; end
+
     #: (T) -> Array[T]
+    #!const internal
     def <<(item); end
 
     # TODO: should be nilable

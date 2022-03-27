@@ -40,6 +40,8 @@ module Houndstooth::Interpreter
                     0.0
                 when env.resolve_type('::Symbol')
                     :""
+                when env.resolve_type('::Array')
+                    []
                 
                 # These always have particular values, so just return immediately and ignore
                 # whatever the value might be set to
@@ -71,6 +73,8 @@ module Houndstooth::Interpreter
                 t, prim = env.resolve_type('Float'), [true, value]
             when Symbol
                 t, prim = env.resolve_type('Symbol'), [true, value]
+            when Array
+                t, prim = env.resolve_type('Array'), [true, value]
             when nil
                 t = env.resolve_type('NilClass')
             when false

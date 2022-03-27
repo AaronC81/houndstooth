@@ -31,6 +31,19 @@ module Houndstooth::Interpreter
                     this
                 end
 
+            # Array.new
+            @method_definitions[env.resolve_type('::Array').eigen.resolve_instance_method(:new, env)] =
+                ->(this, **_) do
+                    InterpreterObject.from_value(value: [], env: env)
+                end
+
+            # Array#<<
+            @method_definitions[env.resolve_type('::Array').resolve_instance_method(:<<, env)] =
+                ->(this, item, **_) do
+                    this.unwrap_primitive_value << item
+                    this
+                end            
+
             # puts and print
             kernel = env.resolve_type('::Kernel').eigen
             @method_definitions[kernel.resolve_instance_method(:puts, env)] = ->(_, obj, **_) do

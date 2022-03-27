@@ -66,7 +66,7 @@ class Houndstooth::Environment
             # grabbing our instance's `initialize` type
             if top_level && found && found.is_a?(SpecialConstructorMethod)
                 initialize_sig = env.resolve_type(uneigen).resolve_instance_method(:initialize, env, instance: instance)
-                Method.new(
+                @new_sig ||= Method.new(
                     :new,
                     initialize_sig.signatures.map do |sig|
                         # Same parameters, but returns `instance`
@@ -76,6 +76,7 @@ class Houndstooth::Environment
                     end,
                     const: initialize_sig.const,
                 )
+                @new_sig
             else
                 found
             end
