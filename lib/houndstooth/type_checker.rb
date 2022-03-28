@@ -141,7 +141,18 @@ module Houndstooth
                             if !add_parameter_type_instructions(ins, ins.method_block, sig.block_parameter.type)
 
                         # Recurse type checking into it
-                        process_block(ins.method_block, lexical_context: lexical_context, self_type: self_type, const_context: const_context, type_parameters: type_parameters)
+                        # We don't support overridden block self types, so we need to special-case
+                        # this for `define_method`, where the block's `self` is uneigened
+                        # `define_method` also strips constness
+                        if method == env.resolve_type('::Module').resolve_instance_method(:define_method, env)
+                            # HACK: Won't work with generics
+                            inner_self_type = env.resolve_type(self_type.type.uneigen).instantiate
+                            inner_const_context = false
+                        else
+                            inner_self_type = self_type
+                            inner_const_context = const_context
+                        end
+                        process_block(ins.method_block, lexical_context: lexical_context, self_type: inner_self_type, const_context: inner_const_context, type_parameters: type_parameters)
 
                         # Check return type
                         if !sig.block_parameter.type.return_type.accepts?(ins.method_block.return_type!)
