@@ -42,7 +42,18 @@ module Houndstooth::Interpreter
                 ->(this, item, **_) do
                     this.unwrap_primitive_value << item
                     this
-                end            
+                end
+                
+            # Array#each
+            @method_definitions[env.resolve_type('::Array').resolve_instance_method(:each, env)] =
+                ->(this, call_block:, **_) do
+                    items = this.unwrap_primitive_value
+                    items.each do |item|
+                        call_block.([item])
+                    end
+
+                    this
+                end
 
             # puts and print
             kernel = env.resolve_type('::Kernel').eigen

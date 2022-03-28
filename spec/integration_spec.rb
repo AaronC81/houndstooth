@@ -756,5 +756,30 @@ RSpec.describe 'integration tests' do
 
             p = X.new.pi
         ', expect_success: false)
+
+        # Complex example - calling other instance method
+        check_type_of('
+            class Translator
+                #: (String, String) -> String
+                def translate(text, language)
+                    "#{text} in #{language} is..."
+                end
+
+                #!arg String
+                [
+                    "english", "french", "german", "japanese",
+                    "spanish", "urdu", "korean", "hungarian",
+                ].each do |lang,|
+                    #!arg String
+                    #!arg String
+                    define_method(:"to_#{lang}") do |s,|
+                        translate(s, lang)
+                    end
+                end
+            end
+
+            t = Translator.new
+            x = t.to_german("Hello")
+        ', 'x') { |t| t.type == resolve_type('String') }
     end
 end

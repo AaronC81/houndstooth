@@ -140,6 +140,7 @@ class Array
     def length; end
 
     #: () { (T) -> void } -> Array[T]
+    #!const internal
     def each; end
 end
 
