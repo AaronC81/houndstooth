@@ -59,19 +59,11 @@ module Houndstooth::Interpreter
             kernel = env.resolve_type('::Kernel').eigen
             @method_definitions[kernel.resolve_instance_method(:puts, env)] = ->(_, obj, **_) do
                 $const_printed = true
-                if obj.primitive_value.first
-                    puts obj.unwrap_primitive_value
-                else
-                    puts obj.inspect
-                end
+                puts obj.ruby_inspect
             end
             @method_definitions[kernel.resolve_instance_method(:print, env)] = ->(_, obj, **_) do
                 $const_printed = true
-                if obj.primitive_value.first
-                    print obj.unwrap_primitive_value
-                else
-                    print obj.inspect
-                end
+                print obj.ruby_inspect
             end
 
             # attr_reader

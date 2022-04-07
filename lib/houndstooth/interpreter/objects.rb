@@ -114,5 +114,20 @@ module Houndstooth::Interpreter
             result
         end
         alias to_s inspect
+
+        def ruby_inspect
+            if primitive_value.first
+                primitive_value = unwrap_primitive_value
+                if primitive_value.is_a?(Array)
+                   "[" + primitive_value.map { |value| value.ruby_inspect }.join(", ") + "]"
+                else
+                    primitive_value.inspect
+                end
+            else
+                # Don't know how to handle this, call back to #<interpreter object: ...>
+                # representation
+                inspect
+            end
+        end
     end
 end
