@@ -116,12 +116,21 @@ module Houndstooth::Interpreter
         alias to_s inspect
 
         def ruby_inspect
+            # Special cases
+            if type == env.resolve_type('NilClass')
+                return ''
+            elsif type == env.resolve_type('TrueClass')
+                return 'true'
+            elsif type == env.resolve_type('FalseClass')
+                return 'false'
+            end
+
             if primitive_value.first
                 primitive_value = unwrap_primitive_value
                 if primitive_value.is_a?(Array)
                    "[" + primitive_value.map { |value| value.ruby_inspect }.join(", ") + "]"
                 else
-                    primitive_value.inspect
+                    primitive_value.to_s
                 end
             else
                 # Don't know how to handle this, call back to #<interpreter object: ...>

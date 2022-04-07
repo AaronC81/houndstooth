@@ -231,11 +231,7 @@ module Houndstooth::Interpreter
 
             when Houndstooth::Instructions::ToStringInstruction
                 obj = variables[ins.target]
-                if obj.primitive_value.first
-                    result_value = obj.unwrap_primitive_value.to_s
-                else
-                    result_value = obj.inspect
-                end
+                result_value = obj.ruby_inspect
                 result_value = InterpreterObject.from_value(value: result_value, env: env)
             else
                 raise "internal error: don't know how to interpret #{ins.class.name}"
