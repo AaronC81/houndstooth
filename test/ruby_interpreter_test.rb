@@ -79,7 +79,7 @@ module BootstrapTestHarness
         if actual_result.ruby_inspect == expected_result
             $bootstrap_test_passes << [expected_result, code]
         else
-            $bootstrap_test_failures << [expected_result, code]
+            $bootstrap_test_failures << [expected_result, actual_result.ruby_inspect, code]
         end
     rescue => e
         $bootstrap_test_crashes << [expected_result, code]
@@ -92,7 +92,7 @@ module BootstrapTestHarness
         if matcher === actual_result.ruby_inspect
             $bootstrap_test_passes << [matcher, code]
         else
-            $bootstrap_test_failures << [matcher, code]
+            $bootstrap_test_failures << [matcher, actual_result, code]
         end
     rescue
         $bootstrap_test_crashes << [matcher, code]
