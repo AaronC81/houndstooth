@@ -36,8 +36,13 @@ module Houndstooth::SemanticNode
         def to_instructions(block)
             # A body could signify a new scope, but not always, so we'll let the upper node in the
             # tree create one if needed
-            nodes&.each do |node|
-                node.to_instructions(block)
+
+            if nodes.any?
+                nodes&.each do |node|
+                    node.to_instructions(block)
+                end
+            else
+                block << I::LiteralInstruction.new(block: block, node: self, value: nil)
             end
         end
     end
