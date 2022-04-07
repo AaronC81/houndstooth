@@ -1,5 +1,5 @@
 require 'simplecov'
-SimpleCov.start
+SimpleCov.start if defined?(RSpec)
 
 require_relative '../lib/houndstooth'
 
@@ -24,7 +24,7 @@ RSpec.configure do |config|
             raise "Errors occurred during test:\n#{errors}"
         end
     end
-end
+end if defined?(RSpec)
 
 def m(type, **attrs)
     if attrs.length > 0
