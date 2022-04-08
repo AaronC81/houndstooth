@@ -58,10 +58,10 @@ def interpreter_execute(code)
     runtime.variables[block.instructions.last.result]
 end
 
-$bootstrap_test_passes = []
-$bootstrap_test_failures = []
-$bootstrap_test_crashes = []
-$bootstrap_test_unimplemented = []
+$bootstrap_test_passes = Hash.new { |h, k| h[k] = [] }
+$bootstrap_test_failures = Hash.new { |h, k| h[k] = [] }
+$bootstrap_test_crashes = Hash.new { |h, k| h[k] = [] }
+$bootstrap_test_unimplemented = Hash.new { |h, k| h[k] = [] }
 
 module BootstrapTestHarness
     def self.clear_errors
@@ -77,12 +77,12 @@ module BootstrapTestHarness
 
         actual_result = interpreter_execute(code)
         if actual_result.ruby_inspect == expected_result
-            $bootstrap_test_passes << [expected_result, code]
+            $bootstrap_test_passes[$bootstrap_test_current_file] << [expected_result, code]
         else
-            $bootstrap_test_failures << [expected_result, actual_result.ruby_inspect, code]
+            $bootstrap_test_failures[$bootstrap_test_current_file] << [expected_result, actual_result.ruby_inspect, code]
         end
     rescue => e
-        $bootstrap_test_crashes << [expected_result, code]
+        $bootstrap_test_crashes[$bootstrap_test_current_file] << [expected_result, code]
     end
 
     def self.assert_match(matcher, code, *_)
@@ -90,19 +90,32 @@ module BootstrapTestHarness
 
         actual_result = interpreter_execute(code)
         if matcher === actual_result.ruby_inspect
-            $bootstrap_test_passes << [matcher, code]
+            $bootstrap_test_passes[$bootstrap_test_current_file] << [matcher, code]
         else
-            $bootstrap_test_failures << [matcher, actual_result, code]
+            $bootstrap_test_failures[$bootstrap_test_current_file] << [matcher, actual_result, code]
         end
     rescue
-        $bootstrap_test_crashes << [matcher, code]
+        $bootstrap_test_crashes[$bootstrap_test_current_file] << [matcher, code]
+    end
+
+    def self.assert_not_match(matcher, code, *_)
+        clear_errors
+
+        actual_result = interpreter_execute(code)
+        if !(matcher === actual_result.ruby_inspect)
+            $bootstrap_test_passes[$bootstrap_test_current_file] << [matcher, code]
+        else
+            $bootstrap_test_failures[$bootstrap_test_current_file] << [matcher, actual_result, code]
+        end
+    rescue
+        $bootstrap_test_crashes[$bootstrap_test_current_file] << [matcher, code]
     end
 
     def self.assert_normal_exit(code, message="(normal exit)", *_)
         clear_errors
         interpreter_execute(code)
     rescue
-        $bootstrap_test_crashes << [message, code]
+        $bootstrap_test_crashes[$bootstrap_test_current_file] << [message, code]
     end
 
     def self.assert_valid_syntax(code, *_)
@@ -110,18 +123,40 @@ module BootstrapTestHarness
         assert_normal_exit(code, "(valid syntax)")
     end
 
+    def self.assert_finish(code, *_)
+        clear_errors
+        assert_normal_exit(code, "(finish)")
+    end
+
     def self.method_missing(*a)
-        $bootstrap_test_unimplemented << a
+        $bootstrap_test_unimplemented[$bootstrap_test_current_file] << a
     end
 end
 
-Dir[File.join(ruby_dir, "bootstraptest", "test_*.rb")].each do |file|
+files = Dir[File.join(ruby_dir, "bootstraptest", "test_*.rb")]
+files.each do |file|
     puts file
     test = File.read(file)
+    $bootstrap_test_current_file = file
     BootstrapTestHarness.instance_eval(test, file)
 end
 
-puts "Passes: #{$bootstrap_test_passes.length}"
-puts "Failures: #{$bootstrap_test_failures.length}"
-puts "Crashes: #{$bootstrap_test_crashes.length}"
-puts "Unimplemented tests: #{$bootstrap_test_unimplemented.length}"
+puts
+puts "== RESULTS =="
+puts
+files.each do |file|
+    print File.split(file)[1]
+    print ":   "
+    print "#{$bootstrap_test_passes[file].length} passed, "
+    print "#{$bootstrap_test_failures[file].length} failed, "
+    print "#{$bootstrap_test_crashes[file].length} crashed, "
+    print "#{$bootstrap_test_unimplemented[file].length} unimplemented"
+    puts
+end
+
+puts
+puts "== TOTALS =="
+puts "Passes: #{$bootstrap_test_passes.values.map(&:length).sum}"
+puts "Failures: #{$bootstrap_test_failures.values.map(&:length).sum}"
+puts "Crashes: #{$bootstrap_test_crashes.values.map(&:length).sum}"
+puts "Unimplemented tests: #{$bootstrap_test_unimplemented.values.map(&:length).sum}"
