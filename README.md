@@ -15,13 +15,15 @@ class Student
     #!arg String
     attr_reader :name
 
-    # Now we'd like to define an accessor for our boolean variable, @graduate. But we usually like
-    # methods returning a boolean to end in ?, so we can't use `attr_accessor`.
+    # Now we'd like to define an accessor for our boolean variable, @graduate.
+    # But we usually like methods returning a boolean to end in ?, so we can't
+    # use `attr_accessor`.
     # Instead, let's define our own helper, `bool_accessor`
 
     #: (Symbol) -> void
     #!const required
-    #  ^ This special annotation means, "hey, type checker - you need to check out what this does!"
+    #  ^ This special annotation means, "hey, type checker - you need to check
+    #    out what this does!"
     def self.bool_accessor(name)
         # Define our method #<name>?
         #!arg Boolean
@@ -42,8 +44,8 @@ class Student
     end
 end
 
-# The type checker sees those `graduate?` and `graduate=` definitions, even though they were
-# dynamic!
+# The type checker sees those `graduate?` and `graduate=` definitions, even
+# though they were dynamic!
 s = Student.new("Aaron")
 s.graduate? # => false
 s.graduate = true
@@ -57,7 +59,8 @@ class Adder
     1000.times do |i,|
         #!arg Integer
         #!arg Integer
-        #  ^ These annotations are the parameter type (first one) and return type (second one)
+        #  ^ These annotations are the parameter type (first one) and return
+        #    type (second one)
         define_method :"add_#{i}" do |input,|
             i + input
         end
@@ -90,7 +93,8 @@ guaranteed to exist at runtime, or depend on non-deterministic data:
 ```ruby
 class A
     # This is a type error!
-    # Cannot call non-const method `rand` on `#<interpreter object: <Eigen:Kernel>>` from const context
+    # Cannot call non-const method `rand` on
+    # `#<interpreter object: <Eigen:Kernel>>` from const context
     if Kernel.rand > 0.5
         #: () -> void
         def x; end
