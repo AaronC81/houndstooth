@@ -80,10 +80,10 @@ All methods can optionally be tagged, either as:
 
 - _const_, which means they _can_ be executed by the interpreter. Such methods include `Integer#+`,
   `Array#each`, and `String#length`.
-- _const-internal_, which means they **must** be executed by the interpreter wherever they appear
+- _const-required_, which means they **must** be executed by the interpreter wherever they appear
   in your codebase. These are your metaprogramming methods, like `define_method` and `attr_reader`.
 
-The strict requirements of const-internal mean that Houndstooth's interpreter is guaranteed to
+The strict requirements of const-required mean that Houndstooth's interpreter is guaranteed to
 discover any invocations of metaprogramming, and therefore knows about the entire environment of
 your program. 
 
