@@ -54,6 +54,10 @@ class Module
     #!const required_internal
     def attr_reader(name); end
 
+    #: [T] (Symbol) -> void
+    #!const required_internal
+    def attr_writer(name); end
+
     # TODO: Method visibility setters are only supported in their argument-taking form
     
     #: (Symbol) -> void

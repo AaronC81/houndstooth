@@ -83,6 +83,25 @@ module Houndstooth::Interpreter
                     InterpreterObject.from_value(value: nil, env: env)
                 end
 
+            # attr_writer
+            @method_definitions[env.resolve_type('::Class').eigen.resolve_instance_method(:attr_writer, env)] =
+                ->(this, name, type_arguments:, **_) do
+                    t = type_arguments['T']
+                    t = t.substitute_type_parameters(nil, type_arguments)
+
+                    env.resolve_type(this.type.uneigen).instance_methods << Houndstooth::Environment::Method.new(
+                        "#{name.unwrap_primitive_value}=".to_sym,
+                        [
+                            Houndstooth::Environment::MethodType.new(
+                                positional: [
+                                    Houndstooth::Environment::PositionalParameter.new(:value, t)
+                                ],
+                            )
+                        ]
+                    )
+                    InterpreterObject.from_value(value: nil, env: env)
+                end
+
             # define_method
             @method_definitions[env.resolve_type('::Class').eigen.resolve_instance_method(:define_method, env)] =
                 ->(this, name, type_arguments:, **_) do
